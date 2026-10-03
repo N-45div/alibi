@@ -57,7 +57,7 @@ def run(con, name, by_msg, model, narrated=False, reasoning=False, system=SYSTEM
     def log_for(m):
         key = (m["agent_id"], m["created_at"][:10])
         if key not in logs:
-            logs[key] = AgentLog(con, key[0], key[1], key[1])
+            logs[key] = AgentLog(con, key[0], key[1], key[1], narrated=narrated)
         return logs[key]
 
     print(f"[{name}] {sum(len(c) for c in todo.values())} claims in {len(todo)} messages", flush=True)

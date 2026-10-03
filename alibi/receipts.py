@@ -183,8 +183,9 @@ def ensure_tables(con):
 class AgentLog:
     """An agent's turns in time order, with the turns that sent chat messages located."""
 
-    def __init__(self, con, agent_id, start, end):
-        cols = ["id", "created_at", "action", "output", "error", "tool_calls", "narration", "thinking"]
+    def __init__(self, con, agent_id, start, end, narrated=False):
+        # narration/thinking are only read for the perspective-capture experiment: they are big rows
+        cols = ["id", "created_at", "action", "output", "error", "tool_calls"] + (["narration", "thinking"] if narrated else [])
         self.turns = [dict(zip(cols, r)) for r in con.execute(
             f"SELECT {', '.join(cols)} FROM turns WHERE agent_id = ? AND created_at >= date(?, '-1 day') "
             f"AND created_at < date(?, '+1 day') ORDER BY created_at", (agent_id, start, end))]
