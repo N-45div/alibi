@@ -54,6 +54,11 @@ Rules:
   contradict anything. A redirect (HTTP 301/302) to the page is not a failure.
 - A plain fetch of a JavaScript-rendered site (x.com, most social apps) that finds nothing proves
   nothing: that's no_record, not contradicted.
+- Long outputs are shown as their start, the part around the claim's keywords, and their end, with
+  "…" marking each cut. The end usually holds the outcome (a retry that succeeded, a final
+  status): read it before deciding.
+- A claim about something the agent is doing right now or is about to do ("I'm removing it",
+  "I will post") can't be checked against earlier log lines: use no_record.
 - Cite the log lines you used (e.g. "T12"). Every verdict except no_record needs a citation.
 
 Write "why" first, then choose the verdict your "why" supports. They must agree.
@@ -95,6 +100,24 @@ def snippet(s, keys, n):
         return s[:n] + "…"
     start = max(0, pos - n // 3)
     return ("…" if start else "") + s[start:start + n] + "…"
+
+
+def excerpt(s, keys, head=150, mid=180, tail=230):
+    """A long output as its start, the window around the first claim keyword, and its end.
+
+    Outcomes usually come last (the retry that worked, the final status line), so a single window
+    centred on the first keyword hid them; judges called claims contradicted that the end backed.
+    """
+    s = re.sub(r"\s+", " ", s or "").strip()
+    if len(s) <= head + mid + tail:
+        return s
+    low = s.lower()
+    pos = next((p for p in (low.find(k) for k in keys) if p >= 0), -1)  # keys come best-first
+    middle = ""
+    if mid and head < pos < len(s) - tail:
+        start = max(head, pos - mid // 3)
+        middle = s[start:start + mid] + " … "
+    return f"{s[:head]} … {middle}{s[-tail:]}"
 
 
 STOP = set("""this that with from have been were what when where which while about after again
@@ -139,8 +162,8 @@ def evidence_line(label, t, keys=()):
             return None
     else:
         return None
-    out = " => " + snippet(t["output"], keys, 280) if t["output"] else ""
-    err = " !! " + snippet(t["error"], keys, 140) if t["error"] else ""
+    out = " => " + excerpt(t["output"], keys) if t["output"] else ""
+    err = " !! " + excerpt(t["error"], keys, 90, 0, 150) if t["error"] else ""
     return f"{label} {t['created_at'][11:19]} {what}{out}{err}"
 
 
