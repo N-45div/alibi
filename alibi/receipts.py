@@ -214,13 +214,8 @@ def narration_of(t):
     return " | ".join(parts)
 
 
-def judge_message(log, agent, msg, claims, reasoning=False, model=MODEL, narrated=False, system=SYSTEM):
-    """Judge one message's claims. narrated=True is the perspective-capture experiment: the same log
-    lines plus the agent's own words. Production verdicts never use it."""
-    idx = log.anchor(msg["created_at"], msg["content"])
-    if idx is None:
-        return [(c["id"], "no_record", "[]", "no turns recorded for this agent before the message",
-                 None, 0, 0) for c in claims]
+def evidence_window(log, idx, claims, narrated=False):
+    """The log lines a judge sees for these claims: (lines, {label: turn id})."""
     idents, words = claim_keys(claims)
     keys = sorted(idents) + sorted(words, key=len, reverse=True)
     hits, recent = log.window(idx, idents)
@@ -237,6 +232,17 @@ def judge_message(log, agent, msg, claims, reasoning=False, model=MODEL, narrate
             words_here = narration_of(log.turns[i]) if narrated else ""
             label_of[label] = log.turns[i]["id"]
             lines.append(f"{line}\n    [agent: {words_here}]" if words_here else line)
+    return lines, label_of
+
+
+def judge_message(log, agent, msg, claims, reasoning=False, model=MODEL, narrated=False, system=SYSTEM):
+    """Judge one message's claims. narrated=True is the perspective-capture experiment: the same log
+    lines plus the agent's own words. Production verdicts never use it."""
+    idx = log.anchor(msg["created_at"], msg["content"])
+    if idx is None:
+        return [(c["id"], "no_record", "[]", "no turns recorded for this agent before the message",
+                 None, 0, 0) for c in claims]
+    lines, label_of = evidence_window(log, idx, claims, narrated)
     valid = set(label_of)
     claim_text = "\n".join(f"[{k}] ({c['kind']}) {c['claim']}\n    quote: \"{c['quote']}\"" for k, c in enumerate(claims))
     user = (f"CLAIMS by {agent} at {msg['created_at'][:19]} UTC:\n{claim_text}\n\n"
