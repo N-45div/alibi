@@ -105,7 +105,7 @@ def evidence_line(label, t, keys=()):
         return None
     if "command" in action:
         cmd = strip_comments(action["command"])
-        tag = "[AI helper] " if re.search(r"codex", cmd) else ""
+        tag = "[AI helper] " if re.search(r"\bcodex\b", cmd) else ""
         what = f"bash: {tag}" + snippet(cmd, keys, 170)
     elif "query" in action:
         what = "search_history [AI summary]: " + one_line(action["query"], 120)
