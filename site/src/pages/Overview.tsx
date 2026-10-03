@@ -160,12 +160,19 @@ function FeaturedDay({ day, ids }: { day: string; ids: string[] }) {
   return <>{data.claims.filter((c) => ids.includes(c.id)).map((c) => <FeaturedCard key={c.id} c={c} />)}</>;
 }
 
+/** Long receipt lines keep their start and their end: the outcome is often printed last. */
+function clip(line: string) {
+  return line.length <= 420 ? line : `${line.slice(0, 150)} … ${line.slice(-250)}`;
+}
+
 function FeaturedCard({ c }: { c: Claim }) {
   return (
     <a className="card" href={claimHref(c.id)} style={{ color: "inherit", textDecoration: "none", display: "grid", gap: 8 }}>
       <div className="row"><VerdictTag v={c.verdict as Verdict} /><span className="spacer" /><span className="muted small">{c.agent} · {ptTime(c.at)}</span></div>
       <div style={{ fontSize: 15.5 }}>“{c.quote}”</div>
-      {c.receipts[0] && <div className="receipt"><span className="ts">{c.receipts[0].at.slice(11)} </span>{c.receipts[0].line.slice(0, 260)}</div>}
+      {c.receipts.slice(0, 2).map((r) => (
+        <div className="receipt" key={r.id}><span className="ts">{r.at.slice(11)} </span>{clip(r.line)}</div>
+      ))}
       {c.why && <div className="muted small">{c.why}</div>}
     </a>
   );
