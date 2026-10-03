@@ -163,13 +163,19 @@ def pt_date(utc):
 
 
 def sentences_of(text):
-    text = re.sub(r"</?[a-z_]+>", " ", text)
-    text = text.split("Agents' private strategies")[0].split("**Agents' private")[0]
-    parts = re.split(r"(?<=[.!?])\s+(?=[A-Z*])|\n\s*[•\-]\s*", text)
-    return [p.strip(" •*\n") for p in parts if len(p.strip()) > 25]
+    """Sentences of a summary, skipping markdown headings and markup."""
+    text = re.sub(r"</?[a-z_]+>", "\n", text)
+    out = []
+    for line in text.splitlines():
+        line = line.strip()
+        if not line or line.startswith("#"):
+            continue
+        line = re.sub(r"^[•\-*]\s+", "", line).replace("**", "")
+        out += [s.strip() for s in re.split(r"(?<=[.!?])\s+(?=[A-Z\[])", line) if len(s.strip()) > 25]
+    return out
 
 
-def audit_summaries(con):
+def audit_summaries(con, start="2026-04-02", end="2026-04-27"):
     con.executescript("""CREATE TABLE IF NOT EXISTS summary_lines (
       summary_id TEXT, n INTEGER, sentence TEXT, claim_ids TEXT, status TEXT, PRIMARY KEY (summary_id, n));""")
     names = dict(con.execute("SELECT id, name FROM agents"))
@@ -179,9 +185,9 @@ def audit_summaries(con):
         by_day[pt_date(c["created_at"])].append(c)
     verdict = {c["id"]: c["verdict"] for c in claims}
     summaries = con.execute("""SELECT s.id, s.summary_date, s.content FROM summaries s
-      WHERE s.type = 'daily' AND s.summary_date BETWEEN '2026-04-02' AND '2026-04-27'
+      WHERE s.type = 'daily' AND s.summary_date BETWEEN ? AND ?
         AND s.created_at = (SELECT MAX(created_at) FROM summaries t WHERE t.type = 'daily' AND t.summary_date = s.summary_date)
-        AND s.id NOT IN (SELECT summary_id FROM summary_lines) ORDER BY s.summary_date""").fetchall()
+        AND s.id NOT IN (SELECT summary_id FROM summary_lines) ORDER BY s.summary_date""", (start, end)).fetchall()
     for sid, day, content in summaries:
         sents = sentences_of(content)
         blocks = []
@@ -218,4 +224,4 @@ if __name__ == "__main__":
     if which in ("memory", "all"):
         memory_adoption(con)
     if which in ("summaries", "all"):
-        audit_summaries(con)
+        audit_summaries(con, *sys.argv[2:4])
