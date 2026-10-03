@@ -141,12 +141,12 @@ def memory_adoption(con):
 
 SUMMARY_SYSTEM = """You trace an official daily summary of an AI-agent village back to the agents' own claims.
 
-Each summary sentence comes with candidate claims made that day (each with an id). For every
-sentence, list the ids of the claims it restates or directly depends on. A sentence can rest on
-several claims or on none (scene-setting, plans, opinions). Only pick a claim if the sentence
-really states the same fact (same agent, same action or number); topic overlap is not enough.
+Each summary sentence comes with candidate claims made that day, each with a key like C12. For
+every sentence, list the keys of the claims it restates or directly depends on. A sentence can
+rest on several claims or on none (scene-setting, plans, opinions). Only pick a claim if the
+sentence really states the same fact (same agent, same action or number); topic overlap is not enough.
 
-Return JSON: {"sentences": [{"s": <sentence number>, "claims": ["<id>", ...]}]}"""
+Return JSON: {"sentences": [{"s": <sentence number>, "claims": ["C12", ...]}]}"""
 
 
 def line_status(verdicts):
@@ -190,7 +190,7 @@ def audit_summaries(con, start="2026-04-02", end="2026-04-27"):
         AND s.id NOT IN (SELECT summary_id FROM summary_lines) ORDER BY s.summary_date""", (start, end)).fetchall()
     for sid, day, content in summaries:
         sents = sentences_of(content)
-        blocks = []
+        blocks, key_of, id_of = [], {}, {}  # short keys: the model mangled "uuid:0"-style ids
         for n, s in enumerate(sents):
             sk, sw = keys_of(s), words_of(s)
             scored = []
@@ -199,10 +199,14 @@ def audit_summaries(con, start="2026-04-02", end="2026-04-27"):
                 score = name_hit + 3 * len(sk & keys_of(c["claim"])) + len(sw & words_of(c["claim"])) / 4
                 scored.append((score, c))
             top = [c for score, c in sorted(scored, key=lambda x: -x[0])[:8] if score >= 2]
-            cand = "\n".join(f"    {c['id']}: [{names.get(c['agent_id'])}] {c['claim']}" for c in top) or "    (none)"
+            for c in top:
+                if c["id"] not in key_of:
+                    key_of[c["id"]] = f"C{len(key_of) + 1}"
+                    id_of[key_of[c["id"]]] = c["id"]
+            cand = "\n".join(f"    {key_of[c['id']]}: [{names.get(c['agent_id'])}] {c['claim']}" for c in top) or "    (none)"
             blocks.append(f"[{n}] {s}\n  candidates:\n{cand}")
         out = chat_json(SUMMARY_SYSTEM, f"SUMMARY for {day}:\n\n" + "\n\n".join(blocks), max_tokens=6000)
-        picked = {int(x["s"]): [i for i in x.get("claims", []) if i in verdict] for x in out.get("sentences", [])
+        picked = {int(x["s"]): [id_of[k] for k in x.get("claims", []) if k in id_of] for x in out.get("sentences", [])
                   if str(x.get("s", "")).isdigit()}
         rows = []
         for n, s in enumerate(sents):
