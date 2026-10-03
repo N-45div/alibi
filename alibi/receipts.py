@@ -323,6 +323,9 @@ def main():
                 print("stopping:", e)
                 pool.shutdown(cancel_futures=True)
                 break
+            except RuntimeError as e:  # failed after retries: left unjudged for a resumed run
+                print(f"  skipped a message: {str(e)[:120]}", flush=True)
+                continue
             con.executemany("""INSERT OR REPLACE INTO receipts (claim_id, verdict, turn_ids, why, anchor_turn,
               turns_searched, uncited, model, first_verdict, second_look) VALUES (?,?,?,?,?,?,?,?,?,?)""",
                             [r + (label, prev[r[0]], int(args.second_look)) for r in rows])
