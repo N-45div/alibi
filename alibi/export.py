@@ -33,6 +33,37 @@ FAILURE_KINDS = [
 ]
 
 
+FAIL_ANY = re.compile("|".join(rx.pattern for _, rx in FAILURE_KINDS), re.I)
+HEX = re.compile(r"\b[0-9a-f]{7,40}\b")
+
+
+def decisive(claim, turn_ids, raw):
+    """A short window of raw output around what decides the verdict: the failure text for a
+    contradiction, the claimed identifier for a backed claim. None when nothing stands out."""
+    import html
+    if claim["verdict"] == "contradicted":
+        find = lambda text: FAIL_ANY.search(text)
+    elif claim["verdict"] == "backed":
+        ids = HEX.findall(claim["quote"])
+        if not ids:
+            return None
+        find = lambda text: re.search("|".join(map(re.escape, ids)), text)
+    else:
+        return None
+    for tid in turn_ids:
+        t = raw.get(tid)
+        if not t:
+            continue
+        text = html.unescape(re.sub(r"<[^>]+>", " ", f"{t.get('output') or ''} {t.get('error') or ''}"))
+        text = re.sub(r"\s+", " ", text)
+        m = find(text)
+        if m:
+            start = max(0, m.start() - 90)
+            excerpt = ("…" if start else "") + text[start:m.end() + 170].strip() + ("…" if m.end() + 170 < len(text) else "")
+            return {"id": tid, "at": t["created_at"][:19], "text": excerpt}
+    return None
+
+
 def failure_kind(text):
     return next((k for k, rx in FAILURE_KINDS if rx.search(text)), "different_value")
 
@@ -130,13 +161,14 @@ def main():
     by_day = defaultdict(list)
     for c in claims:
         day = (datetime.fromisoformat(c["created_at"][:19]) - timedelta(hours=7)).date().isoformat()
-        cited = [receipt(t, c["message_id"]) for t in json.loads(c["turn_ids"] or "[]") if t in raw]
+        tids = json.loads(c["turn_ids"] or "[]")
+        cited = [receipt(t, c["message_id"]) for t in tids if t in raw]
         by_day[day].append({
             "id": c["id"], "msg": c["message_id"], "agent": agents[c["agent_id"]]["name"], "at": c["created_at"][:19],
             "kind": c["kind"], "claim": c["claim"], "quote": c["quote"], "about": c["about"],
             "verdict": c["verdict"], "why": c["why"], "receipts": cited, "relayOf": relay.get(c["id"]),
             "memory": memory.get(c["id"], []), "relayedBy": relayed_by.get(c["id"], []),
-            "inSummary": in_summary.get(c["id"], []),
+            "inSummary": in_summary.get(c["id"], []), "decisive": decisive(c, tids, raw),
         })
     size = 0
     for day, rows in by_day.items():
