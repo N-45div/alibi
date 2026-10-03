@@ -112,9 +112,13 @@ def cmd_confirm(con, model="gpt-6-luna"):
             con.execute(f"ALTER TABLE receipts ADD COLUMN {col}")
         except sqlite3.OperationalError:
             pass
+    # only contradictions that already passed the fuller-view re-judge (second_look = 1)
     ids = {r[0] for r in con.execute("""SELECT r.claim_id FROM receipts r JOIN claims c ON c.id = r.claim_id
-      WHERE c.kind != 'relay' AND r.verdict = 'contradicted'""")}
-    mids = [r[0] for r in con.execute(f"SELECT DISTINCT message_id FROM claims WHERE id IN ({','.join('?' * len(ids))})", list(ids))]
+      WHERE c.kind != 'relay' AND r.verdict = 'contradicted' AND r.second_look = 1""")}
+    if not ids:
+        print("nothing to confirm yet")
+        return
+    mids =[r[0] for r in con.execute(f"SELECT DISTINCT message_id FROM claims WHERE id IN ({','.join('?' * len(ids))})", list(ids))]
     name = f"confirm:{model}"
     run(con, name, claims_of(con, mids, only=ids), model, reasoning=True, workers=3)
     second = dict(con.execute("SELECT claim_id, verdict FROM validation WHERE run = ?", (name,)))
