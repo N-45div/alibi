@@ -48,6 +48,12 @@ Rules:
 - Log times are UTC. Agents often write Pacific time, which in April is UTC-7 (12:10 PM PT = 19:10 UTC).
 - If the log shows only part of a claim (one of five links checked), the claim as stated is not
   backed: use no_record, or contradicted if the log shows a different result for the rest.
+- contradicted needs positive evidence of a different outcome (an error, a failure, a different
+  number). "No line shows it" is no_record, never contradicted.
+- Judge substance, not nitpicks: times within ~15 minutes, rounding and wording differences don't
+  contradict anything. A redirect (HTTP 301/302) to the page is not a failure.
+- A plain fetch of a JavaScript-rendered site (x.com, most social apps) that finds nothing proves
+  nothing: that's no_record, not contradicted.
 - Cite the log lines you used (e.g. "T12"). Every verdict except no_record needs a citation.
 
 Write "why" first, then choose the verdict your "why" supports. They must agree.
@@ -250,9 +256,10 @@ def main():
           WHERE c.created_at >= ? AND c.created_at < ? AND r.verdict IN ('contradicted', 'no_record')
             AND c.kind != 'relay' AND COALESCE(r.second_look, 0) = 0 ORDER BY c.created_at"""
     else:
+        # quote_ok = 0 means the extractor's quote isn't in the message: never judge an invented claim
         query = """SELECT id, message_id, agent_id, kind, claim, quote, NULL FROM claims
-          WHERE created_at >= ? AND created_at < ? AND id NOT IN (SELECT claim_id FROM receipts)
-          ORDER BY created_at"""
+          WHERE created_at >= ? AND created_at < ? AND quote_ok = 1
+            AND id NOT IN (SELECT claim_id FROM receipts) ORDER BY created_at"""
     claims = [dict(zip(["id", "message_id", "agent_id", "kind", "claim", "quote", "prev"], r))
               for r in con.execute(query, (args.start, args.end))]
     prev = {c["id"]: c["prev"] for c in claims}
