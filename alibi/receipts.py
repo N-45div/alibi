@@ -277,7 +277,7 @@ def judge_message(log, agent, msg, claims, reasoning=False, model=MODEL, narrate
             f"LOG (oldest first, ends right before the message was sent):\n" + ("\n".join(lines) or "(empty)"))
     if narrated:
         user += f"\n\nTHE AGENT'S MESSAGE (sent right after this log):\n{msg['content'][:3000]}"
-    out = chat_json(system, user, model=model, max_tokens=12000 if reasoning else 4000, reasoning=reasoning)
+    out = chat_json(system, user, model=model, max_tokens=12000 if reasoning else 2500, reasoning=reasoning)
     rows, seen = [], set()
     for v in out.get("verdicts", []):
         try:
