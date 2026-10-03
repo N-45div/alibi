@@ -98,6 +98,11 @@ def cmd_rerun(con):
     run(con, "rerun", claims_of(con, sample_messages(con, 120, seed=7)), MODEL)
 
 
+def cmd_rerender(con):
+    """Re-judge a fresh random sample with the head/keyword/tail renderer: how much did it change?"""
+    run(con, "rerender", claims_of(con, sample_messages(con, 150, seed=99)), MODEL, workers=6)
+
+
 def cmd_cross(con, model="gpt-6-luna"):
     ds = con.execute("SELECT id FROM agents WHERE name = 'DeepSeek-V3.2'").fetchone()[0]
     mids = sample_messages(con, 10_000, seed=1, where="c.agent_id = ?", params=(ds,))
@@ -217,4 +222,5 @@ def cmd_report(con):
 if __name__ == "__main__":
     con = connect()
     ensure_tables(con)
-    {"rerun": cmd_rerun, "cross": cmd_cross, "capture": cmd_capture, "report": cmd_report}[sys.argv[1]](con)
+    {"rerun": cmd_rerun, "rerender": cmd_rerender, "cross": cmd_cross, "capture": cmd_capture,
+     "report": cmd_report}[sys.argv[1]](con)
