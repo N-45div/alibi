@@ -21,3 +21,6 @@ film/
 scratch/
 *.local.md
 *.log
+
+# exported analysis data: derived from the gated AI Village dataset, served by the demo only
+site/public/data/
