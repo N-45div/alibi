@@ -1,0 +1,16 @@
+# secrets and local environment
+.env
+.venv/
+__pycache__/
+*.pyc
+
+# AI Village data never enters the repo (research terms; size)
+data/
+*.sqlite
+*.sqlite-journal
+*.jsonl.gz
+
+# build output
+node_modules/
+dist/
+out/
