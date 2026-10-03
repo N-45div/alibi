@@ -31,7 +31,6 @@ export interface Overview {
   agents: AgentRow[];
   trust: { origin: Verdict; relayer: "checked" | "trusted"; n: number }[];
   memory: { claims: number; unbacked: number };
-  contradictions?: Partial<Record<FailureKind, number>>;
   summaries: { days: number; lines: Partial<Record<LineStatus, number>> };
   days: string[];
   judge: { model: string };
@@ -51,14 +50,6 @@ export interface Validation {
   };
   cost?: { usd: number; calls: number };
 }
-export type FailureKind = "rate_limit" | "auth" | "not_found" | "error" | "different_value";
-export const FAILURE_LABEL: Record<FailureKind, string> = {
-  rate_limit: "Rate-limited (HTTP 429), reported as posted",
-  auth: "Rejected for authentication (401/403)",
-  not_found: "Target missing (404 / not found)",
-  error: "Another error or failure in the output",
-  different_value: "The log shows a different number or result",
-};
 export type IndexRow = [id: string, day: string, agent: string, kind: Kind, verdict: Verdict, claim: string, at: string];
 export interface Receipt { id: string; at: string; line: string }
 export interface MemoryHit { agent: string; at: string; key: string; own: boolean }
