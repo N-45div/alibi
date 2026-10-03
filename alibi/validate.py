@@ -72,6 +72,9 @@ def run(con, name, by_msg, model, narrated=False, reasoning=False, system=SYSTEM
                 print("stopping:", e)
                 pool.shutdown(cancel_futures=True)
                 break
+            except RuntimeError as e:  # one message failed after retries: leave it for a resumed run
+                print(f"  skipped a message: {str(e)[:120]}", flush=True)
+                continue
             con.executemany("INSERT OR REPLACE INTO validation VALUES (?,?,?,?)", [(name, r[0], r[1], r[3]) for r in rows])
             con.commit()
             if k % 25 == 0 or k == len(futures):
@@ -98,7 +101,7 @@ def cmd_cross(con, model="gpt-6-luna"):
     ds = con.execute("SELECT id FROM agents WHERE name = 'DeepSeek-V3.2'").fetchone()[0]
     mids = sample_messages(con, 10_000, seed=1, where="c.agent_id = ?", params=(ds,))
     mids += sample_messages(con, 150, seed=11, where="c.agent_id != ?", params=(ds,))
-    run(con, f"cross:{model}", claims_of(con, mids), model)
+    run(con, f"cross:{model}", claims_of(con, mids), model, workers=3)  # stays under OpenAI's token-per-minute cap
 
 
 def cmd_capture(con, models=("gpt-5.6-sol", MODEL)):
