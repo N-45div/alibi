@@ -64,6 +64,13 @@ MIN_TURNS, MAX_TURNS = 30, 150   # how far back to look: since the previous chat
 RECENT, TOP, MAX_HITS = 10, 22, 8  # lines shown: last turns + most relevant earlier turns + same-day id matches
 SKIP_ACTIONS = {"mouse_move", "screenshot", "wait", "pause", "get_pixel_coords_of_element",
                 "send_message_back_to_chat"}
+# A prompt both arms of the perspective-capture experiment share: same rules, no claim about what is withheld
+SYSTEM_SHARED = SYSTEM.replace(
+    "You do NOT get the agent's own commentary, on purpose:\nagents misreport, so never take their word for anything.",
+    "Log lines may carry the agent's own words in [agent: ...], and the agent's message may follow the log.\n"
+    "Agents misreport, so never take their word for anything.")
+assert SYSTEM_SHARED != SYSTEM
+
 IDENT = re.compile(r"\b[0-9a-f]{7,40}\b|https?://[^\s)`'\"]+|\$\s?\d[\d,]*(?:\.\d+)?")
 
 
@@ -154,7 +161,7 @@ class AgentLog:
     """An agent's turns in time order, with the turns that sent chat messages located."""
 
     def __init__(self, con, agent_id, start, end):
-        cols = ["id", "created_at", "action", "output", "error", "tool_calls"]
+        cols = ["id", "created_at", "action", "output", "error", "tool_calls", "narration", "thinking"]
         self.turns = [dict(zip(cols, r)) for r in con.execute(
             f"SELECT {', '.join(cols)} FROM turns WHERE agent_id = ? AND created_at >= date(?, '-1 day') "
             f"AND created_at < date(?, '+1 day') ORDER BY created_at", (agent_id, start, end))]
@@ -195,7 +202,21 @@ def _secs(ts):
     return int(ts[8:10]) * 86400 + int(h) * 3600 + int(m) * 60 + int(s)
 
 
-def judge_message(log, agent, msg, claims, reasoning=False):
+def narration_of(t):
+    """The agent's own words around a turn: its bash comments, what it wrote, what it thought."""
+    action = json.loads(t["action"]) if t["action"] else {}
+    comments = [l.strip().lstrip("#").strip() for l in (action.get("command") or "").splitlines() if l.lstrip().startswith("#")]
+    parts = [f"comment: {one_line(' '.join(comments), 160)}"] if comments else []
+    if t.get("narration"):
+        parts.append(f"said: {one_line(t['narration'], 260)}")
+    if t.get("thinking"):
+        parts.append(f"thought: {one_line(t['thinking'], 260)}")
+    return " | ".join(parts)
+
+
+def judge_message(log, agent, msg, claims, reasoning=False, model=MODEL, narrated=False, system=SYSTEM):
+    """Judge one message's claims. narrated=True is the perspective-capture experiment: the same log
+    lines plus the agent's own words. Production verdicts never use it."""
     idx = log.anchor(msg["created_at"], msg["content"])
     if idx is None:
         return [(c["id"], "no_record", "[]", "no turns recorded for this agent before the message",
@@ -213,13 +234,16 @@ def judge_message(log, agent, msg, claims, reasoning=False):
         label = f"T{len(lines) + 1}"
         line = evidence_line(label, log.turns[i], keys)
         if line:  # an id match can sit in the agent's own earlier chat send: narration, not evidence
+            words_here = narration_of(log.turns[i]) if narrated else ""
             label_of[label] = log.turns[i]["id"]
-            lines.append(line)
+            lines.append(f"{line}\n    [agent: {words_here}]" if words_here else line)
     valid = set(label_of)
     claim_text = "\n".join(f"[{k}] ({c['kind']}) {c['claim']}\n    quote: \"{c['quote']}\"" for k, c in enumerate(claims))
     user = (f"CLAIMS by {agent} at {msg['created_at'][:19]} UTC:\n{claim_text}\n\n"
             f"LOG (oldest first, ends right before the message was sent):\n" + ("\n".join(lines) or "(empty)"))
-    out = chat_json(SYSTEM, user, max_tokens=12000 if reasoning else 4000, reasoning=reasoning)
+    if narrated:
+        user += f"\n\nTHE AGENT'S MESSAGE (sent right after this log):\n{msg['content'][:3000]}"
+    out = chat_json(system, user, model=model, max_tokens=12000 if reasoning else 4000, reasoning=reasoning)
     rows, seen = [], set()
     for v in out.get("verdicts", []):
         try:
@@ -244,7 +268,7 @@ def main():
     ap.add_argument("--to", dest="end", default="2026-04-28")
     ap.add_argument("--workers", type=int, default=8)
     ap.add_argument("--second-look", action="store_true",
-                    help="re-judge contradicted/no_record verdicts (not relays) with reasoning on")
+                    help="re-judge contradicted verdicts (not relays) with reasoning on")
     args = ap.parse_args()
 
     con = connect()
@@ -253,7 +277,7 @@ def main():
     if args.second_look:
         query = """SELECT c.id, c.message_id, c.agent_id, c.kind, c.claim, c.quote, r.verdict FROM claims c
           JOIN receipts r ON r.claim_id = c.id
-          WHERE c.created_at >= ? AND c.created_at < ? AND r.verdict IN ('contradicted', 'no_record')
+          WHERE c.created_at >= ? AND c.created_at < ? AND r.verdict = 'contradicted'
             AND c.kind != 'relay' AND COALESCE(r.second_look, 0) = 0 ORDER BY c.created_at"""
     else:
         # quote_ok = 0 means the extractor's quote isn't in the message: never judge an invented claim
