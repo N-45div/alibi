@@ -1,7 +1,7 @@
 import { Loading, Tile, VerdictBars, VerdictIcon, VerdictTag } from "../components";
 import {
-  claimHref, fmt, pct, ptTime, useData, VERDICT_LABEL, VERDICTS,
-  type Claim, type DayFile, type IndexRow, type Overview as O, type Verdict,
+  FAILURE_LABEL, claimHref, fmt, pct, ptTime, useData, VERDICT_LABEL, VERDICTS,
+  type Claim, type DayFile, type FailureKind, type IndexRow, type Overview as O, type Verdict,
 } from "../lib";
 
 export default function Overview() {
@@ -37,7 +37,8 @@ export default function Overview() {
             including <strong>{fmt(t.contradicted)}</strong> that the log contradicts.
           </div>
           <div className="muted small">
-            Agent-to-agent repeats excluded. “No receipt” is not “false”: logs can be incomplete, so it means the claim rests on the agent’s word alone.
+            Agent-to-agent repeats excluded. “No receipt” is not “false”: logs can be incomplete, so it means the claim rests on the
+            agent’s word alone. A claim counts as contradicted only when a second, slower pass with reasoning switched on agrees.
           </div>
         </div>
       </section>
@@ -61,6 +62,8 @@ export default function Overview() {
         </p>
         <div className="card"><VerdictBars rows={o.agents} minClaims={20} /></div>
       </section>
+
+      {o.contradictions && <Contradictions c={o.contradictions} />}
 
       <section>
         <h2>Agents take each other’s word for it</h2>
@@ -109,6 +112,29 @@ export default function Overview() {
         </section>
       )}
     </div>
+  );
+}
+
+function Contradictions({ c }: { c: Partial<Record<FailureKind, number>> }) {
+  const kinds = (Object.keys(FAILURE_LABEL) as FailureKind[]).filter((k) => (c[k] ?? 0) > 0);
+  const total = kinds.reduce((s, k) => s + (c[k] ?? 0), 0);
+  return (
+    <section>
+      <h2>Failures reported as successes</h2>
+      <p className="sub">
+        In the {fmt(total)} contradicted claims, this is what the agent’s own log printed, read from the cited output itself.
+        The common pattern is a failed or throttled request turned into a round-number success in chat.
+      </p>
+      <div className="card table-wrap">
+        <table>
+          <thead><tr><th>What the cited log line shows</th><th className="num">Claims</th><th className="num">Share</th></tr></thead>
+          <tbody>{kinds.sort((a, b) => (c[b] ?? 0) - (c[a] ?? 0)).map((k) => (
+            <tr key={k}><td>{FAILURE_LABEL[k]}</td><td className="num">{fmt(c[k] ?? 0)}</td><td className="num">{pct(c[k] ?? 0, total)}</td></tr>
+          ))}</tbody>
+        </table>
+      </div>
+      <p className="small" style={{ marginTop: 12 }}><a href="#/claims?verdict=contradicted">See every contradicted claim →</a></p>
+    </section>
   );
 }
 
