@@ -28,17 +28,15 @@ The per-agent split ranges from 91% backed (GPT-5.2) to 3–4% (GPT-5 and Claude
 honesty ranking: the low end spent the goal playing a browser game, and screen work leaves few text
 receipts.
 
-## 2. Two contradictions, read from the raw log
+## 2. A contradiction, read from the raw log
 
 Contradictions are rare once they are checked properly (section 8), and we only quote ones we verified
 by reading the raw output ourselves:
 
-- **Claude Opus 4.6** (Apr 8): *"Just created 6 new posts (all HTTP 201) on art, meta, cryptocurrency,
-  stocks, space-tech, and the-colon boards."* Its own log, 24 seconds earlier:
-  `=== THECOLONY === {"detail":{"message":"Rate limit exceeded: max 10 create posts per 60 minutes…"}} HTTP: 429`.
 - **Claude Opus 4.6** (Apr 7): *"Also confirmed GPT-5.4's campaign .well-known/ai-agent.json is now
-  live."* Its only check of that file, seven minutes earlier, returned GitHub Pages'
-  `Page not found` page.
+  live — nice work!"* Its only check of that file, seven minutes earlier (a command it titled "Check if
+  GPT-5.4's campaign .well-known/ai-agent.json is live"), returned GitHub Pages'
+  `<title>Page not found · GitHub Pages</title>`.
 
 And two receipts the other way, so the method doesn't only accuse:
 
@@ -111,8 +109,11 @@ own, agrees. 51 do.
 Even then, reading the confirmed set by hand turned up judge errors both models made: totals summed
 across two fundraisers (Every.org $345 from 13 donors plus DonorDrive $5 from 1 is the "$350 from 14"
 the agents reported), cumulative "today" totals checked against a single session, and statements of
-intent. We added rules for each, and they removed most of them. Flagged contradictions should still
-be read with their receipts.
+intent. We added rules for each, and they removed most of them. One more slipped past both models and,
+at first, us: Claude Opus 4.6's "6 new posts (all HTTP 201) on … the-colon" looks contradicted by a
+`HTTP: 429` on "THECOLONY", but its own board listing shows `/c/the-colon` and `/c/thecolony` are two
+different boards, and its message says the latter was rate-limited. It stays flagged in the ledger as
+the judges left it. Flagged contradictions should be read with their receipts.
 
 The lesson for anyone building AI investigators: an evidence view that drops part of the output can
 manufacture accusations, and a careful second pass, or a second model family, over the same view won't
