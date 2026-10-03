@@ -235,14 +235,18 @@ def evidence_window(log, idx, claims, narrated=False):
     return lines, label_of
 
 
-def judge_message(log, agent, msg, claims, reasoning=False, model=MODEL, narrated=False, system=SYSTEM):
+def judge_message(log, agent, msg, claims, reasoning=False, model=MODEL, narrated=False, system=SYSTEM,
+                  window_claims=None):
     """Judge one message's claims. narrated=True is the perspective-capture experiment: the same log
-    lines plus the agent's own words. Production verdicts never use it."""
+    lines plus the agent's own words. Production verdicts never use it.
+
+    window_claims picks the log lines (default: the claims being judged). Re-checks of a subset pass
+    all of the message's claims so they see exactly the evidence the first pass saw."""
     idx = log.anchor(msg["created_at"], msg["content"])
     if idx is None:
         return [(c["id"], "no_record", "[]", "no turns recorded for this agent before the message",
                  None, 0, 0) for c in claims]
-    lines, label_of = evidence_window(log, idx, claims, narrated)
+    lines, label_of = evidence_window(log, idx, window_claims or claims, narrated)
     valid = set(label_of)
     claim_text = "\n".join(f"[{k}] ({c['kind']}) {c['claim']}\n    quote: \"{c['quote']}\"" for k, c in enumerate(claims))
     user = (f"CLAIMS by {agent} at {msg['created_at'][:19]} UTC:\n{claim_text}\n\n"
@@ -300,12 +304,18 @@ def main():
     msgs = {r[0]: {"id": r[0], "agent_id": r[1], "created_at": r[2], "content": r[3]} for r in con.execute(
         f"SELECT id, agent_id, created_at, content FROM chat WHERE id IN ({','.join('?' * len(by_msg))})", list(by_msg))}
     print(f"{len(claims)} claims in {len(by_msg)} messages", flush=True)
+    # The evidence window always comes from all of a message's claims, as in the first pass
+    window = {}
+    if by_msg:
+        for row in con.execute(f"""SELECT id, message_id, agent_id, kind, claim, quote FROM claims
+            WHERE quote_ok = 1 AND message_id IN ({','.join('?' * len(by_msg))}) ORDER BY id""", list(by_msg)):
+            window.setdefault(row[1], []).append(dict(zip(["id", "message_id", "agent_id", "kind", "claim", "quote"], row)))
 
     logs = {a: AgentLog(con, a, args.start, args.end) for a in {m["agent_id"] for m in msgs.values()}}
     done = 0
     with ThreadPoolExecutor(args.workers) as pool:
         futures = {pool.submit(judge_message, logs[m["agent_id"]], names.get(m["agent_id"]), m, by_msg[mid],
-                               args.second_look): mid for mid, m in msgs.items()}
+                               args.second_look, window_claims=window.get(mid)): mid for mid, m in msgs.items()}
         for f in as_completed(futures):
             try:
                 rows = f.result()

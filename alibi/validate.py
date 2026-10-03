@@ -43,7 +43,8 @@ def claims_of(con, message_ids, only=None):
 
 
 def run(con, name, by_msg, model, narrated=False, reasoning=False, system=SYSTEM, workers=8):
-    """Judge each message's claims with the given setup and store verdicts under `name`."""
+    """Judge each message's claims with the given setup and store verdicts under `name`. The log
+    window is always built from all of the message's claims, exactly as in production."""
     done = {r[0] for r in con.execute("SELECT claim_id FROM validation WHERE run = ?", (name,))}
     todo = {m: cs for m, cs in by_msg.items() if any(c["id"] not in done for c in cs)}
     names = dict(con.execute("SELECT id, name FROM agents"))
@@ -59,9 +60,11 @@ def run(con, name, by_msg, model, narrated=False, reasoning=False, system=SYSTEM
 
     print(f"[{name}] {sum(len(c) for c in todo.values())} claims in {len(todo)} messages", flush=True)
     jobs = {mid: (log_for(m), names.get(m["agent_id"]), m, todo[mid]) for mid, m in msgs.items()}
+    window = claims_of(con, list(todo)) if todo else {}
     start_usd, start_calls, start_in, start_out = spent["usd"], spent["calls"], spent["in"], spent["out"]
     with ThreadPoolExecutor(workers) as pool:
-        futures = {pool.submit(judge_message, *args, reasoning, model, narrated, system): mid for mid, args in jobs.items()}
+        futures = {pool.submit(judge_message, *args, reasoning, model, narrated, system, window.get(mid)): mid
+                   for mid, args in jobs.items()}
         for k, f in enumerate(as_completed(futures), 1):
             try:
                 rows = f.result()
