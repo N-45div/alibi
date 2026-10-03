@@ -1,7 +1,7 @@
 import { Loading, Tile, VerdictBars, VerdictIcon, VerdictTag } from "../components";
 import {
-  FAILURE_LABEL, claimHref, fmt, pct, ptTime, useData, VERDICT_LABEL, VERDICTS,
-  type Claim, type DayFile, type FailureKind, type IndexRow, type Overview as O, type Verdict,
+  claimHref, fmt, pct, ptTime, useData, VERDICT_LABEL, VERDICTS,
+  type Claim, type DayFile, type IndexRow, type Overview as O, type Verdict,
 } from "../lib";
 
 export default function Overview() {
@@ -15,6 +15,8 @@ export default function Overview() {
   const relays = o.trust.reduce((s, x) => s + x.n, 0);
   const trustedUnbacked = o.trust.filter((x) => x.relayer === "trusted" && x.origin !== "backed").reduce((s, x) => s + x.n, 0);
   const lines = o.summaries.lines;
+  const hc = o.validation?.human?.byVerdict?.contradicted;
+  const human = hc && hc.n ? `${hc.agree} of ${hc.n} flagged contradictions` : "";
   const checkable = (lines.backed ?? 0) + (lines.unverified ?? 0) + (lines.contradicted ?? 0);
 
   return (
@@ -33,12 +35,12 @@ export default function Overview() {
         <div className="card" style={{ display: "grid", gap: 6 }}>
           <div className="hero-figure">{pct(unbacked, judged)}</div>
           <div style={{ fontSize: 17 }}>
-            of {fmt(judged)} checkable claims had <strong>no supporting receipt</strong> in the claiming agent’s own action log,
-            including <strong>{fmt(t.contradicted)}</strong> that the log contradicts.
+            of {fmt(judged)} checkable claims had <strong>no supporting receipt</strong> in the claiming agent’s own action log.
           </div>
           <div className="muted small">
             Agent-to-agent repeats excluded. “No receipt” is not “false”: logs can be incomplete, so it means the claim rests on the
-            agent’s word alone. A claim counts as contradicted only when a second model family, judging the same log lines on its own, agrees.
+            agent’s word alone. {fmt(t.contradicted)} of these claims are flagged as contradicted by the agent’s own log, kept only
+            when a second model family agreed{human ? <>; a blind human check agreed with {human}</> : ""}. Read each one’s receipts before quoting it.
           </div>
         </div>
       </section>
@@ -62,8 +64,6 @@ export default function Overview() {
         </p>
         <div className="card"><VerdictBars rows={o.agents} minClaims={20} /></div>
       </section>
-
-      {o.contradictions && <Contradictions c={o.contradictions} />}
 
       <section>
         <h2>Agents take each other’s word for it</h2>
@@ -112,29 +112,6 @@ export default function Overview() {
         </section>
       )}
     </div>
-  );
-}
-
-function Contradictions({ c }: { c: Partial<Record<FailureKind, number>> }) {
-  const kinds = (Object.keys(FAILURE_LABEL) as FailureKind[]).filter((k) => (c[k] ?? 0) > 0);
-  const total = kinds.reduce((s, k) => s + (c[k] ?? 0), 0);
-  return (
-    <section>
-      <h2>Failures reported as successes</h2>
-      <p className="sub">
-        In the {fmt(total)} contradicted claims, this is what the agent’s own log printed, read from the cited output itself.
-        The common pattern is a failed or throttled request turned into a round-number success in chat.
-      </p>
-      <div className="card table-wrap">
-        <table>
-          <thead><tr><th>What the cited log line shows</th><th className="num">Claims</th><th className="num">Share</th></tr></thead>
-          <tbody>{kinds.sort((a, b) => (c[b] ?? 0) - (c[a] ?? 0)).map((k) => (
-            <tr key={k}><td>{FAILURE_LABEL[k]}</td><td className="num">{fmt(c[k] ?? 0)}</td><td className="num">{pct(c[k] ?? 0, total)}</td></tr>
-          ))}</tbody>
-        </table>
-      </div>
-      <p className="small" style={{ marginTop: 12 }}><a href="#/claims?verdict=contradicted">See every contradicted claim →</a></p>
-    </section>
   );
 }
 
