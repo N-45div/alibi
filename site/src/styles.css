@@ -91,7 +91,7 @@ code, .mono { font-family: var(--mono); font-size: 0.86em; }
 .brand { display: flex; align-items: center; gap: 8px; color: var(--ink); font-weight: 650; letter-spacing: -0.01em; }
 .brand:hover { text-decoration: none; }
 .brand svg { color: var(--accent); }
-.nav { display: flex; gap: 4px; flex: 1; overflow-x: auto; scrollbar-width: none; }
+.nav { display: flex; gap: 4px; flex: 1; min-width: 0; overflow-x: auto; scrollbar-width: none; }
 .nav a { color: var(--ink-2); padding: 6px 10px; border-radius: 8px; white-space: nowrap; }
 .nav a:hover { color: var(--ink); background: var(--accent-wash); text-decoration: none; }
 .nav a[aria-current="page"] { color: var(--ink); background: var(--accent-wash); }
@@ -131,7 +131,11 @@ section { padding: 44px 0 0; }
 .legend { display: flex; flex-wrap: wrap; gap: 14px 18px; margin: 0 0 14px; }
 
 /* ---------- stacked bars ---------- */
-.bars { display: grid; grid-template-columns: minmax(150px, 210px) 1fr auto; align-items: center; gap: 10px 14px; }
+.bars { display: grid; gap: 10px; }
+.bar-row { display: grid; grid-template-columns: 200px minmax(0, 1fr) 128px; grid-template-areas: "who stack n"; align-items: center; gap: 0 14px; }
+.bar-row .who { grid-area: who; }
+.bar-row .stack { grid-area: stack; }
+.bar-row .n { grid-area: n; }
 .bars .who { line-height: 1.2; min-width: 0; }
 .bars .who b { font-weight: 560; display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .bars .who span { color: var(--muted); font-size: 12px; }
@@ -140,10 +144,9 @@ section { padding: 44px 0 0; }
 .stack .seg:first-child { border-radius: 0; }
 .stack .seg:last-child { border-radius: 0 4px 4px 0; }
 .stack .seg:focus-visible { outline-offset: 3px; }
-.bars .n { font-variant-numeric: tabular-nums; color: var(--ink-2); font-size: 13px; text-align: right; min-width: 92px; }
+.bars .n { font-variant-numeric: tabular-nums; color: var(--ink-2); font-size: 13px; text-align: right; white-space: nowrap; }
 @media (max-width: 640px) {
-  .bars { grid-template-columns: 1fr auto; }
-  .bars .stack { grid-column: 1 / -1; margin-top: -4px; }
+  .bar-row { grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "who n" "stack stack"; gap: 6px 10px; }
 }
 .tooltip {
   position: fixed; z-index: 50; pointer-events: none;
@@ -189,7 +192,7 @@ tr.click:hover td { background: var(--accent-wash); }
 .detail { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr); gap: 16px; align-items: start; }
 @media (max-width: 900px) { .detail { grid-template-columns: 1fr; } }
 .message { white-space: pre-wrap; overflow-wrap: anywhere; color: var(--ink-2); font-size: 14px; max-height: 520px; overflow-y: auto; }
-.claimline { font-size: 19px; line-height: 1.4; letter-spacing: -0.01em; margin: 6px 0 10px; }
+.claimline { font-size: clamp(22px, 3vw, 28px); line-height: 1.25; letter-spacing: -0.015em; font-weight: 640; margin: 8px 0 12px; max-width: 900px; }
 .why { border-left: 2px solid var(--axis); padding: 2px 0 2px 12px; color: var(--ink-2); margin: 12px 0 0; }
 .receipt {
   font-family: var(--mono); font-size: 12.5px; line-height: 1.5; background: var(--code-bg);

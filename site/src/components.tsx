@@ -72,7 +72,7 @@ export function VerdictBars({ rows, minClaims = 0 }: { rows: AgentRow[]; minClai
   };
   return (
     <div>
-      <div className="row">
+      <div className="row" style={{ marginBottom: 10 }}>
         <Legend />
         <span className="spacer" />
         <button className="toggle" onClick={() => setTable((t) => !t)} aria-pressed={table}>
@@ -84,7 +84,7 @@ export function VerdictBars({ rows, minClaims = 0 }: { rows: AgentRow[]; minClai
           <table>
             <thead><tr><th>Agent</th><th>Lab</th><th className="num">Claims</th>
               {VERDICTS.map((v) => <th className="num" key={v}>{VERDICT_LABEL[v]}</th>)}</tr></thead>
-            <tbody>{shown.map((r) => (
+            <tbody>{rows.map((r) => (
               <tr key={r.agent}><td>{r.agent}</td><td>{r.lab}</td><td className="num">{fmt(r.claims)}</td>
                 {VERDICTS.map((v) => <td className="num" key={v}>{fmt(r[v])} <span className="muted">({pct(r[v], r.claims)})</span></td>)}</tr>
             ))}</tbody>
@@ -93,7 +93,7 @@ export function VerdictBars({ rows, minClaims = 0 }: { rows: AgentRow[]; minClai
       ) : (
         <div className="bars" onMouseLeave={() => setTip(null)}>
           {shown.map((r) => (
-            <div key={r.agent} style={{ display: "contents" }}>
+            <div key={r.agent} className="bar-row">
               <div className="who"><b>{r.agent}</b><span>{r.lab}</span></div>
               <div className="stack" role="img" aria-label={`${r.agent}: ` + VERDICTS.map((v) => `${VERDICT_LABEL[v]} ${pct(r[v], r.claims)}`).join(", ")}>
                 {VERDICTS.filter((v) => r[v] > 0).map((v) => (
@@ -104,6 +104,11 @@ export function VerdictBars({ rows, minClaims = 0 }: { rows: AgentRow[]; minClai
               <div className="n">{pct(r.backed, r.claims)} backed <span className="muted">· {fmt(r.claims)}</span></div>
             </div>
           ))}
+        </div>
+      )}
+      {!table && shown.length < rows.length && (
+        <div className="muted small" style={{ marginTop: 12 }}>
+          {rows.length - shown.length} agent{rows.length - shown.length > 1 ? "s" : ""} with fewer than {minClaims} claims {rows.length - shown.length > 1 ? "are" : "is"} in the table view.
         </div>
       )}
       {tip && (
