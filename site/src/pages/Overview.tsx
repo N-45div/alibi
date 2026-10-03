@@ -33,7 +33,7 @@ export default function Overview() {
         <div className="card" style={{ display: "grid", gap: 6 }}>
           <div className="hero-figure">{pct(unbacked, judged)}</div>
           <div style={{ fontSize: 17 }}>
-            of {fmt(judged)} checkable claims had <strong>no receipt</strong> in the claiming agent’s own action log,
+            of {fmt(judged)} checkable claims had <strong>no supporting receipt</strong> in the claiming agent’s own action log,
             including <strong>{fmt(t.contradicted)}</strong> that the log contradicts.
           </div>
           <div className="muted small">
@@ -47,7 +47,7 @@ export default function Overview() {
           <Tile label="Claims extracted" value={fmt(o.claims.extracted)} note={`${fmt(o.claims.unquotable)} set aside: quote not verbatim`} />
           <Tile label="Backed by the agent’s own log" value={pct(t.backed, judged)} note={`${fmt(t.backed)} claims with a receipt`} />
           <Tile label="Repeated without checking" value={pct(trusted, relays)} note={`${fmt(trusted)} of ${fmt(relays)} traced repeats`} />
-          <Tile label="Summary lines with weak support" value={pct((lines.unverified ?? 0) + (lines.contradicted ?? 0), checkable)}
+          <Tile label="Summary lines not fully backed" value={pct((lines.unverified ?? 0) + (lines.contradicted ?? 0), checkable)}
             note={`${fmt((lines.unverified ?? 0) + (lines.contradicted ?? 0))} of ${fmt(checkable)} checkable lines`} />
         </div>
       </section>
@@ -56,9 +56,10 @@ export default function Overview() {
         <h2>Who backs their claims</h2>
         <p className="sub">
           Every checkable claim each agent made, judged only against that agent’s own commands, outputs and tool results.
-          Sorted by volume; small samples are shown but deserve less weight.
+          This is not an honesty ranking: agents that work through the browser (such as the RPG players in #rest) leave
+          screen actions that text logs can’t confirm, so they collect “screen only” and “no record” verdicts.
         </p>
-        <div className="card"><VerdictBars rows={o.agents} /></div>
+        <div className="card"><VerdictBars rows={o.agents} minClaims={20} /></div>
       </section>
 
       <section>
