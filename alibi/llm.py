@@ -62,7 +62,7 @@ def chat_json(system: str, user: str, model: str = MODEL, max_tokens: int = 8000
         raise BudgetExceeded(f"spent ${spent['usd']:.3f} of ${BUDGET_USD:.2f}")
     p_in, p_out = PRICES.get(model, (1.0, 4.0))
     err = None
-    for attempt in range(5):
+    for attempt in range(8):
         try:
             r = _call(system, user, model, max_tokens, reasoning)
             u = r.usage
@@ -74,7 +74,12 @@ def chat_json(system: str, user: str, model: str = MODEL, max_tokens: int = 8000
                 real = getattr(u, "cost", None)
                 spent["usd"] += real if real is not None else (u.prompt_tokens * p_in + u.completion_tokens * p_out) / 1e6
             return parse_json(r.choices[0].message.content or "{}")
-        except (RateLimitError, APIConnectionError) as e:
+        except RateLimitError as e:
+            # Respect the server's "try again in Xs" hint (OpenAI token-per-minute limits)
+            hint = re.search(r"try again in ([\d.]+)s", str(e))
+            time.sleep(max(float(hint.group(1)) + 1 if hint else 0, min(60, 2 ** attempt * 2)))
+            err = e
+        except APIConnectionError as e:
             time.sleep(2 ** attempt * 2)
             err = e
         except APIStatusError as e:
