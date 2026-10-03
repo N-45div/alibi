@@ -51,7 +51,10 @@ _Headline numbers are filled in from the final run._
 - **Checked in code:** every verdict except "no record" must cite log lines that exist, belong to the
   claiming agent and come before the message. A verdict that cites nothing real becomes "no record".
 - **Blinded judge:** the judge sees the claim and the log lines and nothing else, so it can't adopt the
-  agent's perspective. Contradicted verdicts get a second look with reasoning switched on.
+  agent's perspective.
+- **Accusations are confirmed:** every first-pass contradiction is re-judged with a fuller view of long
+  outputs (start, keyword window, end), and stands only if a second model family (GPT-6 Luna), judging
+  the same lines independently, agrees. Unconfirmed contradictions are shown as "no record".
 
 ## Reproduce
 
@@ -69,7 +72,8 @@ python -m alibi.fetch memories
 python -m alibi.fetch events
 python -m alibi.claims
 python -m alibi.receipts
-python -m alibi.receipts --second-look
+python -m alibi.receipts --second-look --no-reasoning
+python -m alibi.validate confirm
 python -m alibi.spread all
 python -m alibi.validate rerun | cross | capture | report
 python -m alibi.export
