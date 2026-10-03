@@ -15,6 +15,7 @@ import random
 import sys
 from collections import Counter, defaultdict
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from math import comb
 
 from .config import DATA_DIR, MODEL
 from .db import connect
@@ -129,6 +130,14 @@ def cmd_capture(con, models=("gpt-5.6-sol", MODEL)):
         run(con, f"capture-narrated:{model}", by_msg, model, narrated=True, reasoning=direct, system=SYSTEM_SHARED, workers=workers)
 
 
+def sign_test(a, b):
+    """Two-sided exact sign test on discordant pairs (a one way, b the other)."""
+    n, k = a + b, min(a, b)
+    if n == 0:
+        return 1.0
+    return min(1.0, 2 * sum(comb(n, i) for i in range(k + 1)) / 2 ** n)
+
+
 def agreement(pairs):
     return {"claims": len(pairs), "agree": sum(a == b for a, b in pairs)}
 
@@ -163,6 +172,8 @@ def cmd_report(con):
             blind, narr = runs[name], runs.get(f"capture-narrated:{model}", {})
             both = [c for c in blind if c in narr]
             unbacked = [c for c in both if blind[c] in UNBACKED]
+            withdrawn = sum(blind[c] == "contradicted" and narr[c] != "contradicted" for c in both)
+            added = sum(blind[c] != "contradicted" and narr[c] == "contradicted" for c in both)
             capture[model] = {
                 "model": model, "claims": len(both),
                 "blind": Counter(blind[c] for c in both), "narrated": Counter(narr[c] for c in both),
@@ -170,6 +181,11 @@ def cmd_report(con):
                 "flippedToBacked": sum(narr[c] == "backed" for c in unbacked),
                 "backedBlind": sum(blind[c] == "backed" for c in both),
                 "flippedFromBacked": sum(blind[c] == "backed" and narr[c] != "backed" for c in both),
+                # Seeing the agent's own words made the judge withdraw contradictions it had found blind
+                "contradictedBlind": sum(blind[c] == "contradicted" for c in both),
+                "contradictedNarrated": sum(narr[c] == "contradicted" for c in both),
+                "withdrawn": withdrawn, "added": added,
+                "signTestP": sign_test(withdrawn, added),
             }
     if capture:
         out["capture"] = capture.get("gpt-5.6-sol") or next(iter(capture.values()))
