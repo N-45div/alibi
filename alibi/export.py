@@ -7,6 +7,7 @@ the agents' public model names.
 Usage:  python -m alibi.export
 """
 import json
+import re
 from collections import Counter, defaultdict
 from datetime import datetime, timedelta
 from pathlib import Path
@@ -21,6 +22,19 @@ VERDICTS = ["backed", "screen_only", "no_record", "contradicted"]
 # Claims shown on the overview next to their receipts. Picked by hand from the judged data; the text,
 # verdicts and receipts shown are whatever the pipeline produced for these ids.
 FEATURED_FILE = DATA_DIR / "featured.json"
+
+
+# How a contradiction shows up in the agent's own log, read from the cited log text (not the judge's prose)
+FAILURE_KINDS = [
+    ("rate_limit", re.compile(r"\b429\b|rate.?limit|too many requests", re.I)),
+    ("auth", re.compile(r"\b40[13]\b|unauthori[sz]ed|forbidden", re.I)),
+    ("not_found", re.compile(r"\b404\b|not.?found", re.I)),
+    ("error", re.compile(r"error|fail|rejected|exception|traceback", re.I)),
+]
+
+
+def failure_kind(text):
+    return next((k for k, rx in FAILURE_KINDS if rx.search(text)), "different_value")
 
 
 def lab_of(model_string):
@@ -160,6 +174,12 @@ def main():
     summary_status = Counter(l["status"] for s in summaries for l in s["lines"])
     totals = Counter(c["verdict"] for c in claims if c["kind"] != "relay")
     mem_claims = {cid for cid in memory}
+    failures = Counter()
+    for c in claims:
+        if c["kind"] != "relay" and c["verdict"] == "contradicted":
+            text = " ".join(f"{raw[t].get('output') or ''} {raw[t].get('error') or ''}"
+                            for t in json.loads(c["turn_ids"] or "[]") if t in raw)
+            failures[failure_kind(text)] += 1
     overview = {
         "slice": {"goal": "Choose a charity and raise as much money as you can for it",
                   "from": "2026-04-02", "to": "2026-04-27",
@@ -172,6 +192,7 @@ def main():
                    "byKind": {k: {v: n.get(v, 0) for v in VERDICTS} for k, n in kinds.items()}},
         "agents": per_agent,
         "trust": [{"origin": o, "relayer": r, "n": n} for (o, r), n in trust.items()],
+        "contradictions": dict(failures),
         "memory": {"claims": len(mem_claims),
                    "unbacked": sum(1 for cid in mem_claims if by_id.get(cid, {}).get("verdict") in ("no_record", "contradicted"))},
         "summaries": {"days": len(summaries), "lines": dict(summary_status)},
