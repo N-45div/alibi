@@ -105,12 +105,14 @@ def cmd_cross(con, model="gpt-6-luna"):
 
 
 def cmd_capture(con, models=("gpt-5.6-sol", MODEL)):
-    """Stratified by the production verdict; one claim per message so both arms see identical context."""
+    """Stratified by the first-pass verdict (flips are measured within one model, blind vs narrated),
+    one claim per message so both arms see identical context."""
     rng = random.Random(23)
     picked = []
-    for verdict, n in (("contradicted", 50), ("no_record", 60), ("backed", 30), ("screen_only", 20)):
+    for verdict, n in (("contradicted", 40), ("no_record", 45), ("backed", 20), ("screen_only", 15)):
         rows = con.execute("""SELECT c.id, c.message_id FROM claims c JOIN receipts r ON r.claim_id = c.id
-          WHERE c.kind != 'relay' AND c.quote_ok = 1 AND r.verdict = ? ORDER BY c.id""", (verdict,)).fetchall()
+          WHERE c.kind != 'relay' AND c.quote_ok = 1 AND COALESCE(r.first_verdict, r.verdict) = ?
+          ORDER BY c.id""", (verdict,)).fetchall()
         rng.shuffle(rows)
         seen = {m for _, m in picked}
         for cid, mid in rows:
@@ -121,9 +123,10 @@ def cmd_capture(con, models=("gpt-5.6-sol", MODEL)):
     only = {cid for cid, _ in picked}
     by_msg = claims_of(con, [m for _, m in picked], only=only)
     for model in models:
-        reasoning = "/" not in model  # OpenAI analysis model at low effort, as an investigator would run it
-        run(con, f"capture-blind:{model}", by_msg, model, narrated=False, reasoning=reasoning, system=SYSTEM_SHARED)
-        run(con, f"capture-narrated:{model}", by_msg, model, narrated=True, reasoning=reasoning, system=SYSTEM_SHARED)
+        direct = "/" not in model  # OpenAI analysis model at low effort, as an investigator would run it
+        workers = 3 if direct else 6
+        run(con, f"capture-blind:{model}", by_msg, model, narrated=False, reasoning=direct, system=SYSTEM_SHARED, workers=workers)
+        run(con, f"capture-narrated:{model}", by_msg, model, narrated=True, reasoning=direct, system=SYSTEM_SHARED, workers=workers)
 
 
 def agreement(pairs):
