@@ -38,7 +38,7 @@ export default function Overview() {
           </div>
           <div className="muted small">
             Agent-to-agent repeats excluded. “No receipt” is not “false”: logs can be incomplete, so it means the claim rests on the
-            agent’s word alone. A claim counts as contradicted only when a second, slower pass with reasoning switched on agrees.
+            agent’s word alone. A claim counts as contradicted only when a second model family, judging the same log lines on its own, agrees.
           </div>
         </div>
       </section>
