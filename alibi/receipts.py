@@ -302,6 +302,7 @@ def main():
     ap.add_argument("--workers", type=int, default=8)
     ap.add_argument("--second-look", action="store_true",
                     help="re-judge contradicted verdicts (not relays) with reasoning on")
+    ap.add_argument("--no-reasoning", action="store_true", help="re-judge without reasoning (cheaper)")
     args = ap.parse_args()
 
     con = connect()
@@ -320,7 +321,8 @@ def main():
     claims = [dict(zip(["id", "message_id", "agent_id", "kind", "claim", "quote", "prev"], r))
               for r in con.execute(query, (args.start, args.end))]
     prev = {c["id"]: c["prev"] for c in claims}
-    label = MODEL + ("+reasoning" if args.second_look else "")
+    reasoning = args.second_look and not args.no_reasoning
+    label = MODEL + ("+reasoning" if reasoning else "")
     by_msg = {}
     for c in claims:
         by_msg.setdefault(c["message_id"], []).append(c)
@@ -338,7 +340,7 @@ def main():
     done = 0
     with ThreadPoolExecutor(args.workers) as pool:
         futures = {pool.submit(judge_message, logs[m["agent_id"]], names.get(m["agent_id"]), m, by_msg[mid],
-                               args.second_look, window_claims=window.get(mid)): mid for mid, m in msgs.items()}
+                               reasoning, window_claims=window.get(mid)): mid for mid, m in msgs.items()}
         for f in as_completed(futures):
             try:
                 rows = f.result()
