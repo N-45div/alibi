@@ -54,7 +54,9 @@ def chat_json(system: str, user: str, model: str = MODEL, max_tokens: int = 8000
                 spent["in"] += u.prompt_tokens
                 spent["out"] += u.completion_tokens
                 spent["calls"] += 1
-                spent["usd"] += (u.prompt_tokens * p_in + u.completion_tokens * p_out) / 1e6
+                # OpenRouter reports the real charge; providers often bill under list price
+                real = getattr(u, "cost", None)
+                spent["usd"] += real if real is not None else (u.prompt_tokens * p_in + u.completion_tokens * p_out) / 1e6
             return parse_json(r.choices[0].message.content or "{}")
         except (RateLimitError, APIConnectionError) as e:
             time.sleep(2 ** attempt * 2)
