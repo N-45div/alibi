@@ -41,6 +41,7 @@ export interface Overview {
 export interface Validation {
   human?: { labelled: number; byVerdict: Record<string, { n: number; agree: number }> };
   rerun?: { claims: number; agree: number };
+  rerender?: { claims: number; agree: number; contradictedBefore: number; contradictedAfter: number; backedBefore: number; backedAfter: number };
   crossFamily?: { model: string; claims: number; agree: number; byVerdict?: Record<string, { n: number; agree: number }> };
   capture?: {
     model: string; claims: number;
