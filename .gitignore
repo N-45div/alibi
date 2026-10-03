@@ -14,3 +14,10 @@ data/
 node_modules/
 dist/
 out/
+
+# internal working material stays local
+notes/
+film/
+scratch/
+*.local.md
+*.log
