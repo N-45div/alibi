@@ -11,13 +11,16 @@ from collections import Counter, defaultdict
 from datetime import datetime, timedelta
 from pathlib import Path
 
-from .config import MODEL, ROOT
+from .config import DATA_DIR, MODEL, ROOT
 from .db import connect
-from .receipts import evidence_line
+from .receipts import claim_keys, evidence_line
 
 OUT = ROOT / "site" / "public" / "data"
 LAB = {"gpt": "OpenAI", "claude": "Anthropic", "gemini": "Google", "deepseek": "DeepSeek", "kimi": "Moonshot"}
 VERDICTS = ["backed", "screen_only", "no_record", "contradicted"]
+# Claims shown on the overview next to their receipts. Picked by hand from the judged data; the text,
+# verdicts and receipts shown are whatever the pipeline produced for these ids.
+FEATURED_FILE = DATA_DIR / "featured.json"
 
 
 def lab_of(model_string):
@@ -60,20 +63,43 @@ def main():
              r.verdict, r.why, r.turn_ids, r.uncited
       FROM claims c JOIN receipts r ON r.claim_id = c.id ORDER BY c.created_at""")]
     relay = {r[0]: r[1] for r in con.execute("SELECT relay_id, origin_id FROM relay_links WHERE origin_id IS NOT NULL")}
+    verdict_of = {c["id"]: c for c in claims}
+    relayed_by = defaultdict(list)
+    for rid, oid in relay.items():
+        if rid in verdict_of:
+            relayed_by[oid].append({"id": rid, "agent": agents[verdict_of[rid]["agent_id"]]["name"],
+                                    "verdict": verdict_of[rid]["verdict"]})
+    in_summary = defaultdict(list)
+    for sid, n, ids in con.execute("SELECT summary_id, n, claim_ids FROM summary_lines"):
+        date = con.execute("SELECT summary_date FROM summaries WHERE id = ?", (sid,)).fetchone()[0]
+        for cid in json.loads(ids):
+            in_summary[cid].append({"date": date, "n": n})
     memory = defaultdict(list)
     for cid, aid, ts, key, own in con.execute("SELECT claim_id, agent_id, created_at, key, own FROM memory_hits"):
         memory[cid].append({"agent": agents[aid]["name"], "at": ts[:19], "key": key, "own": bool(own)})
 
-    # Receipts: render each cited turn with the same evidence renderer the judge saw
+    # Receipts: each cited turn rendered by the judge's own renderer, snippets centred on the keys of
+    # the message's claims exactly as the judge saw them
     turn_ids = {t for c in claims for t in json.loads(c["turn_ids"] or "[]")}
-    turns = {}
+    raw = {}
     cols = ["id", "created_at", "action", "output", "error", "tool_calls"]
     ids = list(turn_ids)
     for i in range(0, len(ids), 900):
         chunk = ids[i:i + 900]
         for r in con.execute(f"SELECT {', '.join(cols)} FROM turns WHERE id IN ({','.join('?' * len(chunk))})", chunk):
-            t = dict(zip(cols, r))
-            turns[t["id"]] = {"at": t["created_at"][:19], "line": evidence_line("", t, ()) or ""}
+            raw[r[0]] = dict(zip(cols, r))
+    msg_claims = defaultdict(list)
+    for c in claims:
+        msg_claims[c["message_id"]].append(c)
+    keys_of_msg = {}
+    for mid, cs in msg_claims.items():
+        idents, words = claim_keys(cs)
+        keys_of_msg[mid] = sorted(idents) + sorted(words, key=len, reverse=True)
+
+    def receipt(turn_id, message_id):
+        t = raw[turn_id]
+        line = (evidence_line("", t, keys_of_msg[message_id]) or "").strip()
+        return {"id": turn_id, "at": t["created_at"][:19], "line": line.split(" ", 1)[1] if " " in line else line}
 
     # Messages that carry claims (agent messages only)
     msg_ids = sorted({c["message_id"] for c in claims})
@@ -90,12 +116,13 @@ def main():
     by_day = defaultdict(list)
     for c in claims:
         day = (datetime.fromisoformat(c["created_at"][:19]) - timedelta(hours=7)).date().isoformat()
-        cited = [turns[t] | {"id": t} for t in json.loads(c["turn_ids"] or "[]") if t in turns]
+        cited = [receipt(t, c["message_id"]) for t in json.loads(c["turn_ids"] or "[]") if t in raw]
         by_day[day].append({
             "id": c["id"], "msg": c["message_id"], "agent": agents[c["agent_id"]]["name"], "at": c["created_at"][:19],
             "kind": c["kind"], "claim": c["claim"], "quote": c["quote"], "about": c["about"],
             "verdict": c["verdict"], "why": c["why"], "receipts": cited, "relayOf": relay.get(c["id"]),
-            "memory": memory.get(c["id"], []),
+            "memory": memory.get(c["id"], []), "relayedBy": relayed_by.get(c["id"], []),
+            "inSummary": in_summary.get(c["id"], []),
         })
     size = 0
     for day, rows in by_day.items():
@@ -151,6 +178,11 @@ def main():
         "days": sorted(by_day),
         "judge": {"model": MODEL},
     }
+    if FEATURED_FILE.exists():
+        overview["featured"] = [i for i in json.loads(FEATURED_FILE.read_text(encoding="utf-8")) if i in verdict_of]
+    validation_file = DATA_DIR / "validation.json"
+    if validation_file.exists():
+        overview["validation"] = json.loads(validation_file.read_text(encoding="utf-8"))
     size += write("overview.json", overview)
     print(f"exported {len(claims)} claims over {len(by_day)} days, {len(summaries)} summaries ({size / 1e6:.1f} MB)")
 
