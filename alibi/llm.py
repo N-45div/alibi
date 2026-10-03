@@ -83,6 +83,11 @@ def chat_json(system: str, user: str, model: str = MODEL, max_tokens: int = 8000
             time.sleep(2 ** attempt * 2)
             err = e
         except APIStatusError as e:
+            # OpenRouter 402 "in_flight_budget_exhausted": too many reservations against a capped key; wait it out
+            if e.status_code == 402 and "in_flight" in str(e):
+                time.sleep(20 * (attempt + 1))
+                err = e
+                continue
             if e.status_code < 500:
                 raise
             time.sleep(2 ** attempt * 2)
