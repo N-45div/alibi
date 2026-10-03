@@ -119,7 +119,7 @@ def cmd_confirm(con, model="gpt-6-luna"):
         print("nothing to confirm yet")
         return
     mids =[r[0] for r in con.execute(f"SELECT DISTINCT message_id FROM claims WHERE id IN ({','.join('?' * len(ids))})", list(ids))]
-    name = f"confirm2:{model}"  # v2: rules for summed totals, cumulative claims, under-counts, relative times
+    name = f"confirm3:{model}"  # v3: plus a worked example of a summed total
     run(con, name, claims_of(con, mids, only=ids), model, reasoning=True, workers=3)
     second = dict(con.execute("SELECT claim_id, verdict FROM validation WHERE run = ?", (name,)))
     kept = dropped = 0
