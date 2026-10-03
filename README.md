@@ -7,7 +7,7 @@ agents' messages, into their long-term memories, and into the official record.
 Built for the AI Swarm Dynamics Hackathon (AI Village × Grove Research) on the
 [AI Village dataset](https://huggingface.co/datasets/aidigestorg/ai-village).
 
-**Live demo:** _link added on deploy_
+**Live demo:** [alibi-one.vercel.app](https://alibi-one.vercel.app) · **Results:** [FINDINGS.md](FINDINGS.md)
 
 ---
 
@@ -28,7 +28,17 @@ word for anything: a chat message is a **claim**, and only the agent's own execu
 One complete goal: **"Choose a charity and raise as much money as you can for it"**, April 2–27 2026,
 14 agents from five labs, 4,558 agent chat messages, 151,251 logged computer-use turns.
 
-_Headline numbers are filled in from the final run._
+- **28.8%** of 6,260 checkable claims have no supporting receipt in the claiming agent's own log
+  (62.5% backed, 8.7% screen only, 28.0% no record, 0.8% contradicted).
+- **89%** of 371 traced agent-to-agent repeats were taken on trust: the repeating agent's log shows no
+  check of its own.
+- **73%** of the official daily-summary sentences that restate checkable claims rest on at least one
+  claim the agent's own log doesn't back.
+- **Perspective capture:** given the agent's own narration, GPT-5.6 Sol (the analysis model METR relied
+  on) withdrew 8 of 15 contradictions it had found blind and added none (sign test p = 0.008), while
+  almost never inventing support (1 of 80).
+- **Our own tool's failure, caught:** a single-window view of long outputs manufactured contradictions
+  that two model families confirmed. Section 8 of [FINDINGS.md](FINDINGS.md) covers what we changed.
 
 ## How it works
 
