@@ -189,6 +189,8 @@ def audit_summaries(con, start="2026-04-02", end="2026-04-27"):
         AND s.created_at = (SELECT MAX(created_at) FROM summaries t WHERE t.type = 'daily' AND t.summary_date = s.summary_date)
         AND s.id NOT IN (SELECT summary_id FROM summary_lines) ORDER BY s.summary_date""", (start, end)).fetchall()
     for sid, day, content in summaries:
+        if not by_day[day]:
+            continue  # e.g. the goal's last calendar day, whose summary covers the next goal
         sents = sentences_of(content)
         blocks, key_of, id_of = [], {}, {}  # short keys: the model mangled "uuid:0"-style ids
         for n, s in enumerate(sents):
