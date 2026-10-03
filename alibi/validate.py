@@ -12,6 +12,7 @@ Usage:  python -m alibi.validate rerun | cross | capture | report
 """
 import json
 import random
+import sqlite3
 import sys
 from collections import Counter, defaultdict
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -101,6 +102,36 @@ def cmd_rerun(con):
 def cmd_rerender(con):
     """Re-judge a fresh random sample with the head/keyword/tail renderer: how much did it change?"""
     run(con, "rerender", claims_of(con, sample_messages(con, 150, seed=99)), MODEL, workers=6)
+
+
+def cmd_confirm(con, model="gpt-6-luna"):
+    """A contradiction is published only if a second model family, judging the same log lines on its
+    own, also calls it contradicted. Unconfirmed ones become no_record: neither verdict is asserted."""
+    for col in ("confirmed_by TEXT",):
+        try:
+            con.execute(f"ALTER TABLE receipts ADD COLUMN {col}")
+        except sqlite3.OperationalError:
+            pass
+    ids = {r[0] for r in con.execute("""SELECT r.claim_id FROM receipts r JOIN claims c ON c.id = r.claim_id
+      WHERE c.kind != 'relay' AND r.verdict = 'contradicted'""")}
+    mids = [r[0] for r in con.execute(f"SELECT DISTINCT message_id FROM claims WHERE id IN ({','.join('?' * len(ids))})", list(ids))]
+    name = f"confirm:{model}"
+    run(con, name, claims_of(con, mids, only=ids), model, reasoning=True, workers=3)
+    second = dict(con.execute("SELECT claim_id, verdict FROM validation WHERE run = ?", (name,)))
+    kept = dropped = 0
+    for cid in ids:
+        if cid not in second:
+            continue
+        if second[cid] == "contradicted":
+            con.execute("UPDATE receipts SET confirmed_by = ? WHERE claim_id = ?", (model, cid))
+            kept += 1
+        else:
+            con.execute("""UPDATE receipts SET verdict = 'no_record',
+              why = ? || COALESCE(why, '') WHERE claim_id = ?""",
+                        (f"Contradiction not confirmed by a second model family ({model} said {second[cid]}). First judge: ", cid))
+            dropped += 1
+    con.commit()
+    print(f"confirmed {kept} contradictions, {dropped} not confirmed (now no_record), {len(ids) - kept - dropped} not judged")
 
 
 def cmd_cross(con, model="gpt-6-luna"):
@@ -231,4 +262,4 @@ if __name__ == "__main__":
     con = connect()
     ensure_tables(con)
     {"rerun": cmd_rerun, "rerender": cmd_rerender, "cross": cmd_cross, "capture": cmd_capture,
-     "report": cmd_report}[sys.argv[1]](con)
+     "confirm": cmd_confirm, "report": cmd_report}[sys.argv[1]](con)
