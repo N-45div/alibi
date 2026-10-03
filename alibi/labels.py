@@ -17,14 +17,20 @@ from .db import connect
 from .export import village_day_map, viewer_link
 from .receipts import AgentLog, evidence_window
 
-STRATA = (("backed", 20), ("contradicted", 20), ("no_record", 15), ("screen_only", 5))
+STRATA = (("backed", 15), ("contradicted", 15), ("no_record", 10), ("screen_only", 5))
+DISAGREE = 15  # production judge said backed, the second model family said no_record: who is right?
 
 
 def sample(con, seed=42):
     rng, picked, used = random.Random(seed), [], set()
-    for verdict, n in STRATA:
-        rows = con.execute("""SELECT c.id, c.message_id FROM claims c JOIN receipts r ON r.claim_id = c.id
-          WHERE c.kind != 'relay' AND c.quote_ok = 1 AND r.verdict = ? ORDER BY c.id""", (verdict,)).fetchall()
+    groups = [(n, con.execute("""SELECT c.id, c.message_id FROM claims c JOIN receipts r ON r.claim_id = c.id
+          WHERE c.kind != 'relay' AND c.quote_ok = 1 AND r.verdict = ? ORDER BY c.id""", (verdict,)).fetchall())
+              for verdict, n in STRATA]
+    groups.append((DISAGREE, con.execute("""SELECT c.id, c.message_id FROM claims c JOIN receipts r ON r.claim_id = c.id
+          JOIN validation v ON v.claim_id = c.id AND v.run LIKE 'cross:%'
+          WHERE c.kind != 'relay' AND c.quote_ok = 1 AND r.verdict = 'backed' AND v.verdict = 'no_record'
+          ORDER BY c.id""").fetchall()))
+    for n, rows in groups:
         rng.shuffle(rows)
         for cid, mid in rows:
             if n and mid not in used:
@@ -40,7 +46,7 @@ def make(con):
     day_map = village_day_map(con)
     items = []
     for cid, mid in sample(con):
-        mid_, aid, ts, content = con.execute("SELECT id, agent_id, created_at, content FROM chat WHERE id = ?", (mid,)).fetchone()
+        aid, ts, content = con.execute("SELECT agent_id, created_at, content FROM chat WHERE id = ?", (mid,)).fetchone()
         claims = [dict(zip(["id", "kind", "claim", "quote"], r)) for r in con.execute(
             "SELECT id, kind, claim, quote FROM claims WHERE message_id = ? AND quote_ok = 1 ORDER BY id", (mid,))]
         log = AgentLog(con, aid, ts[:10], ts[:10])
