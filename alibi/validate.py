@@ -180,6 +180,15 @@ def cmd_report(con):
                 by[final[cid]]["n"] += 1
                 by[final[cid]]["agree"] += final[cid] == human
         out["human"] = {"labelled": sum(x["n"] for x in by.values()), "byVerdict": dict(by)}
+        if cross:
+            # Where the two model families disagreed (backed vs no_record), whose side did the human take?
+            split = [cid for cid, human in labels.items() if human != "skip" and final.get(cid) == "backed"
+                     and runs[cross].get(cid) == "no_record"]
+            out["human"]["arbitration"] = {
+                "claims": len(split),
+                "sidedWithJudge": sum(labels[c] == "backed" for c in split),
+                "sidedWithSecondFamily": sum(labels[c] == "no_record" for c in split),
+            }
     usage = con.execute("SELECT COUNT(*), COALESCE(SUM(calls), 0), COALESCE(SUM(usd), 0) FROM run_usage").fetchone()
     out["validationUsage"] = {"runs": usage[0], "calls": usage[1], "usd": round(usage[2], 3)}
     (DATA_DIR / "validation.json").write_text(json.dumps(out, indent=2, default=dict), encoding="utf-8")
