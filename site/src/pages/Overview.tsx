@@ -106,7 +106,7 @@ export default function Overview() {
 
       {o.validation?.capture && (
         <section>
-          <h2>Reading the agent’s story changes the verdict</h2>
+          <h2>Reading the agent’s story softens the verdict</h2>
           <Capture v={o.validation} />
           <p className="small"><a href="#/method">How this was measured →</a></p>
         </section>
@@ -143,9 +143,11 @@ function Capture({ v }: { v: NonNullable<O["validation"]> }) {
   return (
     <>
       <p className="sub">
-        The same model ({c.model}, the analysis model METR used for the Hugging Face incident), the same {fmt(c.claims)} claims and the
-        same log windows, shown two ways: with the agent’s own narration and reasoning visible, and with it removed (Alibi’s view).
-        Of the {fmt(c.unbackedBlind)} claims it could not back when blinded, it called <strong>{fmt(c.flippedToBacked)}</strong> backed once it could read the agent’s story.
+        The analysis model METR relied on for the Hugging Face incident ({c.model}), the same {fmt(c.claims)} claims, the same log
+        lines and the same rules, shown two ways: actions and outputs only (Alibi’s view), and with the agent’s own narration,
+        reasoning and message added. With the agent’s words visible it <strong>withdrew {fmt(c.withdrawn)} of the {fmt(c.contradictedBlind)} contradictions</strong> it
+        had found blind and added {fmt(c.added)} (sign test p = {c.signTestP < 0.001 ? "<0.001" : c.signTestP.toFixed(3)}). It rarely invented support:
+        {" "}{fmt(c.flippedToBacked)} of {fmt(c.unbackedBlind)} unbacked claims became backed. Reading the agent’s account made it give the agent the benefit of the doubt.
       </p>
       <div className="card table-wrap">
         <table>

@@ -46,6 +46,7 @@ export interface Validation {
     model: string; claims: number;
     blind: Record<Verdict, number>; narrated: Record<Verdict, number>;
     flippedToBacked: number; unbackedBlind: number;
+    contradictedBlind: number; contradictedNarrated: number; withdrawn: number; added: number; signTestP: number;
   };
   cost?: { usd: number; calls: number };
 }
