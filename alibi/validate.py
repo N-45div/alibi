@@ -156,9 +156,17 @@ def cmd_report(con):
     out = {}
     if runs.get("rerun"):
         out["rerun"] = agreement([(prod[c], v) for c, v in runs["rerun"].items() if c in prod])
+    if runs.get("rerender"):
+        # Same judge, fuller view of long outputs (start, keyword window, end): first pass vs fresh run
+        pairs = [(prod[c], v) for c, v in runs["rerender"].items() if c in prod]
+        out["rerender"] = {**agreement(pairs),
+                           "contradictedBefore": sum(a == "contradicted" for a, _ in pairs),
+                           "contradictedAfter": sum(b == "contradicted" for _, b in pairs),
+                           "backedBefore": sum(a == "backed" for a, _ in pairs),
+                           "backedAfter": sum(b == "backed" for _, b in pairs)}
     cross = next((k for k in runs if k.startswith("cross:")), None)
     if cross:
-        pairs = [(final[c], v) for c, v in runs[cross].items() if c in final]
+        pairs = [(prod[c], v) for c, v in runs[cross].items() if c in prod]
         by = defaultdict(lambda: {"n": 0, "agree": 0})
         for a, b in pairs:
             by[a]["n"] += 1
@@ -166,9 +174,9 @@ def cmd_report(con):
         ds = con.execute("SELECT id FROM agents WHERE name = 'DeepSeek-V3.2'").fetchone()[0]
         own = {r[0] for r in con.execute("SELECT id FROM claims WHERE agent_id = ?", (ds,))}
         rate = lambda judge, ids: sum(judge[c] == "backed" for c in ids) / max(1, len(ids))
-        ds_ids = [c for c in runs[cross] if c in own and c in final]
+        ds_ids = [c for c in runs[cross] if c in own and c in prod]
         out["crossFamily"] = {"model": cross.split(":", 1)[1], **agreement(pairs), "byVerdict": dict(by),
-                              "deepseekAgentBackedRate": {"deepseekJudge": rate(final, ds_ids), "otherJudge": rate(runs[cross], ds_ids),
+                              "deepseekAgentBackedRate": {"deepseekJudge": rate(prod, ds_ids), "otherJudge": rate(runs[cross], ds_ids),
                                                           "claims": len(ds_ids)}}
     capture = {}
     for name in runs:
