@@ -97,13 +97,24 @@ def unpack_model_output(msgs):
     return calls, "\n".join(said), "\n".join(thought)
 
 
+def clip_call(call):
+    """Clip a tool call's input without breaking it: long values become clipped strings."""
+    inp = call.get("input")
+    if isinstance(inp, dict):
+        inp = {k: clip(v, 1500, 300) if isinstance(v, str) else v for k, v in inp.items()}
+    elif isinstance(inp, str):
+        inp = clip(inp, 1500, 300)
+    return {"name": call.get("name"), "input": inp}
+
+
 def turn_row(r, session_agent):
     calls, said, thought = unpack_model_output(r.get("agent_messages"))
+    calls = [clip_call(c) for c in calls]
     return (r["id"], r["session_id"], session_agent.get(r["session_id"]), r["created_at"],
             json.dumps(r.get("agent_action"), ensure_ascii=False) if r.get("agent_action") else None,
             clip(r.get("output")), clip(r.get("error"), 1500, 500), clip(r.get("system"), 1000, 0),
             int(bool(r.get("screenshot_is_redacted"))), int(bool(r.get("has_redaction_been_overruled"))),
-            clip(json.dumps(calls, ensure_ascii=False), 4000, 0) if calls else None,
+            json.dumps(calls, ensure_ascii=False) if calls else None,
             clip(said, 2000, 500), clip(thought, 1500, 0))
 
 
