@@ -222,9 +222,21 @@ def audit_summaries(con, start="2026-04-02", end="2026-04-27"):
         print(f"summary {day}: {dict(counts)}  ${spent['usd']:.3f}", flush=True)
 
 
+def restatus(con):
+    """Recompute each summary line's status from its claims' current verdicts (after re-checks)."""
+    verdict = dict(con.execute("SELECT claim_id, verdict FROM receipts"))
+    rows = [(line_status({verdict[i] for i in json.loads(ids) if i in verdict}), sid, n)
+            for sid, n, ids in con.execute("SELECT summary_id, n, claim_ids FROM summary_lines")]
+    con.executemany("UPDATE summary_lines SET status = ? WHERE summary_id = ? AND n = ?", rows)
+    con.commit()
+    print("summary line statuses:", dict(con.execute("SELECT status, COUNT(*) FROM summary_lines GROUP BY 1")))
+
+
 if __name__ == "__main__":
     which = sys.argv[1] if len(sys.argv) > 1 else "all"
     con = connect()
+    if which == "restatus":
+        restatus(con)
     if which in ("relays", "all"):
         link_relays(con)
     if which in ("memory", "all"):
