@@ -1,4 +1,8 @@
-"""Thin OpenAI-compatible client with JSON parsing, retries and a hard spend cap."""
+"""Thin OpenAI-compatible client with JSON parsing, retries and a hard spend cap.
+
+Model names with a slash (deepseek/deepseek-v4.1-flash) go through OpenRouter; bare OpenAI names
+(gpt-6-luna, gpt-5.6-sol) go straight to OpenAI. The second family is only used to cross-check.
+"""
 import json
 import os
 import re
@@ -9,13 +13,16 @@ from openai import APIConnectionError, APIStatusError, OpenAI, RateLimitError
 
 from .config import LLM_API_KEY, LLM_BASE_URL, MODEL
 
-# USD per million tokens (OpenRouter list prices, checked 2026-10-04)
+# USD per million tokens (list prices, checked 2026-10-04)
 PRICES = {
     "deepseek/deepseek-v4.1-flash": (0.30, 1.20),
     "deepseek/deepseek-v4-flash": (0.03, 0.06),
+    "gpt-6-luna": (0.10, 0.50),
+    "gpt-5.6-sol": (2.00, 10.00),
 }
 
-_client = OpenAI(base_url=LLM_BASE_URL, api_key=LLM_API_KEY, max_retries=0, timeout=180)
+_router = OpenAI(base_url=LLM_BASE_URL, api_key=LLM_API_KEY, max_retries=0, timeout=180)
+_openai = OpenAI(api_key=os.environ.get("OPENAI_API_KEY") or "unset", max_retries=0, timeout=180)
 _lock = threading.Lock()
 spent = {"usd": 0.0, "in": 0, "out": 0, "calls": 0}
 BUDGET_USD = float(os.environ.get("ALIBI_BUDGET_USD", "1.0"))
@@ -34,6 +41,18 @@ def parse_json(text: str):
     return json.loads(text[start:])
 
 
+def _call(system, user, model, max_tokens, reasoning):
+    messages = [{"role": "system", "content": system}, {"role": "user", "content": user}]
+    if "/" in model:
+        return _router.chat.completions.create(
+            model=model, max_tokens=max_tokens, temperature=0, response_format={"type": "json_object"},
+            messages=messages, extra_body={"reasoning": {"enabled": reasoning}})
+    # OpenAI reasoning models: no temperature, completion-token budget, explicit effort
+    return _openai.chat.completions.create(
+        model=model, max_completion_tokens=max_tokens, reasoning_effort="low" if reasoning else "none",
+        response_format={"type": "json_object"}, messages=messages)
+
+
 def chat_json(system: str, user: str, model: str = MODEL, max_tokens: int = 8000, reasoning: bool = False):
     """One JSON-returning call. Retries transient failures; refuses to run past the budget.
 
@@ -42,13 +61,10 @@ def chat_json(system: str, user: str, model: str = MODEL, max_tokens: int = 8000
     if spent["usd"] >= BUDGET_USD:
         raise BudgetExceeded(f"spent ${spent['usd']:.3f} of ${BUDGET_USD:.2f}")
     p_in, p_out = PRICES.get(model, (1.0, 4.0))
+    err = None
     for attempt in range(5):
         try:
-            r = _client.chat.completions.create(
-                model=model, max_tokens=max_tokens, temperature=0,
-                response_format={"type": "json_object"},
-                messages=[{"role": "system", "content": system}, {"role": "user", "content": user}],
-                extra_body={"reasoning": {"enabled": reasoning}})
+            r = _call(system, user, model, max_tokens, reasoning)
             u = r.usage
             with _lock:
                 spent["in"] += u.prompt_tokens
