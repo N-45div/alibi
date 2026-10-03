@@ -51,6 +51,7 @@ export default function Method() {
           <li><strong>Never counts:</strong> chat messages, the agent’s narration and reasoning, the first-person comments agents were told to open each bash call with, its own session summaries and memories, and other AIs’ reports (history-search answers, codex sub-agent output). Those are all the agent, or another model, talking.</li>
           <li><strong>Checked in code:</strong> every verdict except “no record” must cite log lines that exist, belong to the claiming agent and precede the message. A verdict citing nothing real is downgraded to “no record”.</li>
           <li><strong>Blinded judge:</strong> the judge ({o.judge.model}, reasoning off) sees the claim sentence and the log lines, nothing else. Log windows run from the agent’s previous chat message (30–150 turns) plus same-day lines mentioning the claim’s identifiers.</li>
+          <li><strong>Second look:</strong> every “contradicted” verdict is re-judged over the identical log lines with reasoning switched on. Only claims both passes call contradicted are published as contradicted; the rest take the second pass’s verdict. The fast pass over-calls contradictions, which is exactly why this step exists.</li>
         </ul>
       </section>
 
