@@ -59,6 +59,7 @@ export interface Claim {
   relayOf: string | null; memory: MemoryHit[];
   relayedBy?: { id: string; agent: string; verdict: Verdict }[];
   inSummary?: { date: string; n: number }[];
+  decisive?: { id: string; at: string; text: string } | null;
 }
 export interface Message { id: string; agent: string; at: string; room: string | null; text: string; link: string | null }
 export interface DayFile { day: string; claims: Claim[]; messages: Record<string, Message> }

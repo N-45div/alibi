@@ -170,8 +170,10 @@ function FeaturedCard({ c }: { c: Claim }) {
     <a className="card" href={claimHref(c.id)} style={{ color: "inherit", textDecoration: "none", display: "grid", gap: 8 }}>
       <div className="row"><VerdictTag v={c.verdict as Verdict} /><span className="spacer" /><span className="muted small">{c.agent} · {ptTime(c.at)}</span></div>
       <div style={{ fontSize: 15.5 }}>“{c.quote}”</div>
-      {c.receipts.slice(0, 2).map((r) => (
-        <div className="receipt" key={r.id}><span className="ts">{r.at.slice(11)} </span>{clip(r.line)}</div>
+      {c.decisive ? (
+        <div className="receipt"><span className="ts">{c.decisive.at.slice(11)} UTC </span>{c.decisive.text}</div>
+      ) : c.receipts.slice(0, 1).map((r) => (
+        <div className="receipt" key={r.id}><span className="ts">{r.at.slice(11)} UTC </span>{clip(r.line)}</div>
       ))}
       {c.why && <div className="muted small">{c.why}</div>}
     </a>

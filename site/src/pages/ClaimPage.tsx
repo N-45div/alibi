@@ -36,6 +36,13 @@ export default function ClaimPage({ id }: { id: string }) {
 
         <div className="card">
           <h3>What {c.agent}’s own log shows</h3>
+          {c.decisive && (
+            <>
+              <div className="muted small" style={{ margin: "4px 0 6px" }}>The line that decides it</div>
+              <div className="receipt" style={{ borderColor: "var(--axis)" }}><span className="ts">{c.decisive.at.slice(11)} UTC  </span>{c.decisive.text}</div>
+              <div className="muted small" style={{ margin: "14px 0 6px" }}>Every log line the judge cited</div>
+            </>
+          )}
           {c.receipts.length > 0 ? c.receipts.map((r) => (
             <div className="receipt" key={r.id}><span className="ts">{r.at.slice(11)} UTC  </span>{r.line}</div>
           )) : <div className="empty">No log line supports this claim in the window before the message was sent.</div>}
