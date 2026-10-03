@@ -34,8 +34,11 @@ def parse_json(text: str):
     return json.loads(text[start:])
 
 
-def chat_json(system: str, user: str, model: str = MODEL, max_tokens: int = 8000):
-    """One JSON-returning call. Retries transient failures; refuses to run past the budget."""
+def chat_json(system: str, user: str, model: str = MODEL, max_tokens: int = 8000, reasoning: bool = False):
+    """One JSON-returning call. Retries transient failures; refuses to run past the budget.
+
+    Reasoning is off by default: on extraction it tripled output tokens for the same claims.
+    """
     if spent["usd"] >= BUDGET_USD:
         raise BudgetExceeded(f"spent ${spent['usd']:.3f} of ${BUDGET_USD:.2f}")
     p_in, p_out = PRICES.get(model, (1.0, 4.0))
@@ -44,7 +47,8 @@ def chat_json(system: str, user: str, model: str = MODEL, max_tokens: int = 8000
             r = _client.chat.completions.create(
                 model=model, max_tokens=max_tokens, temperature=0,
                 response_format={"type": "json_object"},
-                messages=[{"role": "system", "content": system}, {"role": "user", "content": user}])
+                messages=[{"role": "system", "content": system}, {"role": "user", "content": user}],
+                extra_body={"reasoning": {"enabled": reasoning}})
             u = r.usage
             with _lock:
                 spent["in"] += u.prompt_tokens
