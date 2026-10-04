@@ -65,12 +65,27 @@ const kindOf = (collection: string) => collection.split(".").pop()!;
 /** Words only: quotes are compared word for word, ignoring punctuation, case and markup. */
 const wordsOf = (s: string) => s.toLowerCase().replace(/[‘’'`]/g, "").match(/[\p{L}\p{N}]+/gu) ?? [];
 const fragments = (q: string) => q.split(/…|\.\.\.|\[[^\]]*\]/).map((f) => wordsOf(f).join(" ")).filter((f) => f.length >= 4);
+// Quotes of a word or two ("not now") are too short to say whose words they are
+const quotable = (q: string) => fragments(q).length > 0 && wordsOf(q).length >= 3;
+function edits(a: string, b: string): number {
+  let row = Array.from({ length: b.length + 1 }, (_, j) => j);
+  for (let i = 1; i <= a.length; i++) {
+    const next = [i];
+    for (let j = 1; j <= b.length; j++) next[j] = Math.min(row[j] + 1, next[j - 1] + 1, row[j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
+    row = next;
+  }
+  return row[b.length];
+}
+/** A quoted word is there if the text has it, or a spelling of it a couple of letters off ("wiww" for "will");
+ * anything with a digit must match exactly, so a changed number never passes. */
+const spelledLike = (w: string, tw: Set<string>) =>
+  tw.has(w) || (!/\d/.test(w) && w.length >= 2 && [...tw].some((t) => !/\d/.test(t) && Math.abs(t.length - w.length) <= 2 && edits(w, t) <= (w.length >= 6 ? 2 : 1)));
 const recall = (q: string, text: string) => {
   const qw = new Set(wordsOf(q));
   const tw = new Set(wordsOf(text));
-  return qw.size ? [...qw].filter((w) => tw.has(w)).length / qw.size : 0;
+  return qw.size ? [...qw].filter((w) => spelledLike(w, tw)).length / qw.size : 0;
 };
-/** verbatim: every fragment appears word for word; close: the words are there, reordered or trimmed. */
+/** verbatim: every fragment appears word for word; close: the words are there, reordered, trimmed or respelled. */
 function grade(q: string, text: string): { verdict: QuoteVerdict; score: number } {
   const body = " " + wordsOf(text).join(" ") + " ";
   const frags = fragments(q);
@@ -231,8 +246,10 @@ export async function audit(town: Town, elsewhere?: (uri: string) => Promise<Rec
           let m: RegExpMatchArray | undefined;
           for (const x of mclause.matchAll(MARKER)) m = x;
           const gap = m ? mclause.slice(m.index! + m[0].length) : "";
-          // Another possessive or a closing bracket in between means the marker belongs to something else
-          if (m && wordCount(gap) <= 4 && !/\w(?:'s|’s)\b|\)/.test(gap)) {
+          // Another possessive or a closing bracket in between means the marker belongs to something else, and
+          // "under hy3's note (…)" places the record next to hy3's, it doesn't say whose it is
+          const placed = m ? /\b(under|beneath|below|above|on|onto|to|after|before|from|in|into|against)\s*$/i.test(mclause.slice(0, m.index!)) : false;
+          if (m && !placed && wordCount(gap) <= 4 && !/\w(?:'s|’s)\b|\)/.test(gap)) {
             const who = m[1] ? alias.get(m[1].toLowerCase()) ?? null : m[2] ? by : null;
             const yours = m[3] ? new Set([parentOwner(p), ...mentions(p)].filter((x): x is string => !!x)) : null;
             const ok = (h: string) => h === owner || subjectOwner(rec!) === h || parentOwner(rec!) === h;
@@ -263,7 +280,7 @@ export async function audit(town: Town, elsewhere?: (uri: string) => Promise<Rec
         const qa = /^`?(?:,[ \t]*\d{2}:\d{2}(?::\d{2})?Z?)?\)?[ \t]*[:—–-]?[ \t]*["“]([^"“”\n]{6,400})["”]/.exec(after);
         const q = qb?.[1] ?? (qa && !NEXT_KEY.test(after.slice(qa[0].length)) ? qa[1] : undefined);
         const source = viaParent && parent ? parent : subject && !rec.value.text ? subject : rec;
-        if (q && source.value.text && fragments(q).length) {
+        if (q && source.value.text && quotable(q)) {
           const g = grade(q, text(source));
           details.push({ what: "quote", ok: g.verdict !== "not_found", close: g.verdict === "close", said: q, found: text(source).slice(0, 400) });
         }
@@ -276,7 +293,7 @@ export async function audit(town: Town, elsewhere?: (uri: string) => Promise<Rec
     for (const m of [...t.matchAll(SAID), ...t.matchAll(SAID_POSS)]) {
       const speaker = alias.get(m[1].toLowerCase());
       const q = m[2];
-      if (!speaker || speaker === by || quoted.has(q) || !fragments(q).length) continue;
+      if (!speaker || speaker === by || quoted.has(q) || !quotable(q)) continue;
       // A quote that sits right next to a record key is checked against that record above
       if (NEXT_KEY.test(t.slice(m.index! + m[0].length, m.index! + m[0].length + 80))) continue;
       quoted.add(q);
