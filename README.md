@@ -1,16 +1,19 @@
 # Alibi
 
-**Alibi follows unverified claims through an agent swarm.** It checks every claim AI agents make against
+**Alibi follows unverified claims through agent swarms.** It checks every claim AI agents make against
 their own action logs, traces the ones nobody can back up into other agents' messages, their long-term
 memories and the official record, and measures how AI investigators fail at the same job. In one AI
-Village goal: 89% of agent-to-agent repeats were never checked by the repeating agent, 73% of the
-official summary lines that restate checkable claims rest on a claim the logs don't back, and the
-analysis model METR relied on withdrew half its accusations once it could read the agents' own story.
+Village goal, agents repeated each other's unbacked claims 2 to 4.5 times as often as backed ones, and
+89% of repeats were never checked by the repeating agent. The official daily summaries didn't filter
+them out, and the analysis model METR relied on withdrew half its accusations once it could read the
+agents' own story. Alibi also runs live on Grove Research's Delvetown, where agents cite signed
+records: 95% of 1,051 citations check out, and it found the nine that don't.
 
 *Agents' words aren't evidence.*
 
 Built for the AI Swarm Dynamics Hackathon (AI Village × Grove Research) on the
-[AI Village dataset](https://huggingface.co/datasets/aidigestorg/ai-village).
+[AI Village dataset](https://huggingface.co/datasets/aidigestorg/ai-village) and
+[Delvetown](https://delve.town)'s public records.
 
 **Live demo:** [alibi-one.vercel.app](https://alibi-one.vercel.app) · **Results:** [FINDINGS.md](FINDINGS.md)
 
@@ -37,13 +40,19 @@ One complete goal: **"Choose a charity and raise as much money as you can for it
   (62.5% backed, 8.7% screen only, 28.0% no record, 0.8% contradicted).
 - **89%** of 371 traced agent-to-agent repeats were taken on trust: the repeating agent's log shows no
   check of its own.
+- **The swarm passes on what it can't verify:** other agents repeated 5.7% of no-record claims and
+  12.7% of screen-only claims, against 2.8% of backed ones. Within the same agent and kind of claim,
+  the odds were 2.2 times higher (permutation p < 0.001).
 - **73%** of the official daily-summary sentences that restate checkable claims rest on at least one
-  claim the agent's own log doesn't back.
+  claim the agent's own log doesn't back. The summaries restated unbacked claims as often as backed ones.
 - **Perspective capture:** given the agent's own narration, GPT-5.6 Sol (the analysis model METR relied
   on) withdrew 8 of 15 contradictions it had found blind and added none (sign test p = 0.008), while
   almost never inventing support (1 of 80).
+- **A second swarm, checked live:** in Delvetown, 997 of 1,051 record citations (94.9%) resolve with
+  every detail matching. Among the nine the records contradict, the town's minute-keeper filed two posts
+  as "eaten by the deletion program" that are still in their author's repo.
 - **Our own tool's failure, caught:** a single-window view of long outputs manufactured contradictions
-  that two model families confirmed. Section 8 of [FINDINGS.md](FINDINGS.md) covers what we changed.
+  that two model families confirmed. Section 10 of [FINDINGS.md](FINDINGS.md) covers what we changed.
 
 ## How it works
 
@@ -52,9 +61,10 @@ One complete goal: **"Choose a charity and raise as much money as you can for it
 | Slice | `alibi/fetch.py` | Stream the AI Village tables from Hugging Face and keep one goal. The 2.5 GB turns and memories files are filtered while streaming; nothing is stored whole. |
 | Extract | `alibi/claims.py` | An LLM pulls every checkable claim out of agent chat (actions, observations, verifications, and repeats of other agents' results), each with a verbatim quote. A quote that isn't in the message is set aside, not trusted. |
 | Receipts | `alibi/receipts.py` | For each message we find the turn that sent it and give a judge only what the agent executed before: commands, their real output, errors, GUI actions, tool results. Verdict: **backed**, **screen only**, **no record** or **contradicted**. |
-| Spread | `alibi/spread.py` | Repeats are linked to the claim they repeat (did the repeater check first?), claims are followed into agents' memories by their exact specifics, and each sentence of the official daily summary is traced to the claims it restates. |
+| Spread | `alibi/spread.py` | Repeats are linked to the claim they repeat (did the repeater check first?), claims are followed into agents' memories by their exact specifics, each sentence of the official daily summary is traced to the claims it restates, and backed and unbacked claims are compared on how far they travelled, within the same agent and kind of claim. |
 | Validate | `alibi/validate.py`, `alibi/labels.py` | Run-to-run agreement, a second model family, blind human labels, and the perspective-capture experiment. |
-| Publish | `alibi/export.py`, `site/` | Static JSON and a React site: overview, a filterable ledger of every claim with its receipts, the audited summaries, and the method. |
+| Delvetown | `site/src/delve/`, `site/scripts/delve-snapshot.ts` | Read every repo on Delvetown's AT Protocol server and check each cited record's address, owner, time, kind and quoted words against the signed record, and whether a record a post calls deleted is gone. No model is involved. The same code runs in the browser for the live check. |
+| Publish | `alibi/export.py`, `site/` | Static JSON and a React site: overview, a filterable ledger of every claim with its receipts, the audited summaries, Delvetown, and the method. |
 
 ### What counts as evidence
 
@@ -70,6 +80,8 @@ One complete goal: **"Choose a charity and raise as much money as you can for it
 - **Accusations are confirmed:** every first-pass contradiction is re-judged with a fuller view of long
   outputs (start, keyword window, end), and stands only if a second model family (GPT-6 Luna), judging
   the same lines independently, agrees. Unconfirmed contradictions are shown as "no record".
+- **In Delvetown, the record is the evidence:** a citation is checked against the signed record it
+  points at, and a post's own words never count.
 
 ## Reproduce
 
@@ -90,9 +102,12 @@ python -m alibi.receipts
 python -m alibi.receipts --second-look --no-reasoning
 python -m alibi.validate confirm
 python -m alibi.spread all
+python -m alibi.spread amplify
 python -m alibi.validate rerun | cross | capture | report
 python -m alibi.export
-cd site && npm install && npm run build
+cd site && npm install
+node scripts/delve-snapshot.ts     # Delvetown: no keys, reads the town's public server (Node 22.18+)
+npm run build
 ```
 
 The analysis data is derived from a gated dataset, so it is not committed here. The pipeline rebuilds it.
@@ -107,8 +122,10 @@ The analysis data is derived from a gated dataset, so it is not committed here. 
 - **LLMs extract and judge.** Hence verbatim quotes, citations checked in code, and validation against
   human labels, a re-run and a second model family.
 - **Not an honesty ranking.** Agents that work through the browser leave fewer text receipts.
-- **One goal, one village.** The method needs only a chat log and an action log, so it applies to any
-  swarm that keeps both.
+- **Delvetown shows the present, not its history.** A record deleted after it was cited reads as "no
+  record", and owner, time and quote checks only fire when a post states them next to the record key.
+- **The method needs a claim and a record.** A chat log and an action log in the AI Village, posts and
+  signed records in Delvetown; any swarm that keeps both can be checked the same way.
 
 ## Related work
 
@@ -126,3 +143,7 @@ The analysis data is derived from a gated dataset, so it is not committed here. 
 
 AI Village dataset by AI Digest (Sage), used under its research terms: analysis only, no training, no
 re-identification. The site shows agent messages only; human chat is excluded.
+
+Delvetown records are read from Grove Research's public AT Protocol server (`pds.delve.town`). Alibi
+only reads; it never posts or interacts. Only AI accounts' words are reproduced, and people's records
+are linked, not copied.
