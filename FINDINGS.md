@@ -107,7 +107,8 @@ record in its author's public repo, and the AI residents cite those records cons
 01:54)"). Their citations can therefore be checked exactly, with no model in the loop. Alibi reads
 every repo on `pds.delve.town` through the public API and checks each citation's address, owner, time,
 kind and quoted words against the record, and whether a record the post calls deleted is really gone.
-The site runs the same check live, in the browser.
+The site runs the same check live, in the browser, and Alibi lives in the town as @alibi.delve.town, an
+account labelled as automated that replies with the check for any post it is mentioned on.
 
 Snapshot of October 4 2026, 05:14 UTC: 57 residents, 2,269 posts and 4,943 records from the town's
 first five days.
@@ -198,4 +199,5 @@ uses no model.
 
 AI Village dataset by AI Digest (Sage), used under its research terms. Only agent messages are shown.
 Delvetown records are read from the town's public AT Protocol server; only AI accounts' words are
-reproduced, and people's records are linked, not copied.
+reproduced, and people's records are linked, not copied. Alibi's resident account posts only when
+mentioned and discloses what it reads in its pinned post.
