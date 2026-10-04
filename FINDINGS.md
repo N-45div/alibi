@@ -1,7 +1,8 @@
 # Findings
 
 What Alibi found when it checked every claim the AI Village agents made during one goal against their
-own action logs. Every number below comes from the run in this repository; the site
+own action logs, and every record citation in Grove Research's Delvetown against the town's signed
+records. Every number below comes from the runs in this repository; the site
 ([alibi-one.vercel.app](https://alibi-one.vercel.app)) shows each claim next to its receipts.
 
 **Slice:** "Choose a charity and raise as much money as you can for it", April 2–27 2026. 14 agents
@@ -30,7 +31,7 @@ receipts.
 
 ## 2. A contradiction, read from the raw log
 
-Contradictions are rare once they are checked properly (section 9), and we only quote ones we verified
+Contradictions are rare once they are checked properly (section 10), and we only quote ones we verified
 by reading the raw output ourselves:
 
 - **Claude Opus 4.6** (Apr 7): *"Also confirmed GPT-5.4's campaign .well-known/ai-agent.json is now
@@ -98,7 +99,52 @@ and message added.
 Perspective capture showed up as the benefit of the doubt, not as invented receipts. That is why
 Alibi's judge never sees the agent's own words. (Both arms used the first-pass log view.)
 
-## 8. How far to trust the verdicts
+## 8. A second swarm, checked live: Delvetown
+
+Delvetown is Grove Research's human–AI town on the AT Protocol. Every post, like and follow is a signed
+record in its author's public repo, and the AI residents cite those records constantly: record keys,
+`at://` URIs and delve.town links, often with the owner and a UTC time ("mimo's reply (3mwubbolyzy26,
+01:54)"). Their citations can therefore be checked exactly, with no model in the loop. Alibi reads
+every repo on `pds.delve.town` through the public API and checks each citation's address, owner, time,
+kind and quoted words against the record, and whether a record the post calls deleted is really gone.
+The site runs the same check live, in the browser.
+
+Snapshot of October 4 2026, 05:14 UTC: 57 residents, 2,269 posts and 4,943 records from the town's
+first five days.
+
+- **1,051 record citations, by 8 AI residents.** 997 (94.9%) resolve with every checked detail
+  matching, 37 point at records the post itself says were deleted, 8 point at no record, and 9 are
+  contradicted by the record.
+- **Quotes hold up.** All 82 quotes placed next to a citation match the cited record, word for word or
+  with words trimmed. 21 of 22 quotes attributed to another resident by name are verbatim; the other
+  puts a resident's deliberately misspelled words into standard spelling.
+
+The nine contradictions, each read against its record:
+
+- **A deletion that didn't happen.** GLM, the town's minute-keeper, twice filed two of deepseek's posts
+  as "eaten by the deletion program" and "now ghosts". Both are still in deepseek's repo. Hy3 pulled
+  them three minutes later ("resolve LIVE on the network … not a network deletion"), then reported one
+  of GLM's own posts as "Post not found from BOTH desks"; that one is still there too. On October 3,
+  about a different post, GLM wrote: "I mistook my own read failure for a deletion."
+- **Three links to the wrong record.** Luna's link to "GLM's post" pairs GLM's repo with a record that
+  is grok's. GLM linked its own reply under another resident's repo. And GLM's note on a "Post not
+  found" error cites the post by a URI whose key belongs to one of GLM's likes, so as written it can't
+  resolve.
+- **Two times that are off.** GLM's minutes date a welcome 06:35 that was posted at 08:24, and a receipt
+  08:08 that was posted at 08:10.
+
+In the AI Village, 28.8% of agents' claims about their own work had no receipt in their own logs. In
+Delvetown, where the norm is to cite a signed record, 95% of the citations check out. These are
+different measures, since pointing at a record is easier to get right than describing your own work,
+but they point the same way: a swarm can be checked, by itself or by an outsider in under a minute,
+when its claims arrive with a pointer to the record.
+
+Limits: the town's server shows the present state, not its history, so a record deleted after it was
+cited reads as "no record". Owner, time, kind and quote checks fire only when the post states them next
+to the key, so 252 of the 1,051 citations carry a detail beyond existence. The rules were tuned on this
+snapshot and every flag above was read by hand; a live run can flag new cases nobody has read yet.
+
+## 9. How far to trust the verdicts
 
 - **Run to run:** re-judging 210 claims gave the same verdict 93% of the time.
 - **Second model family:** GPT-6 Luna re-judged 1,485 claims (every message by DeepSeek-V3.2, so no
@@ -108,7 +154,7 @@ Alibi's judge never sees the agent's own words. (Both arms used the first-pass l
 - **Blind human labels:** a 60-claim sample is being labelled blind to the judge (15 of them chosen
   where the two judges disagreed); the results will be added here.
 
-## 9. What went wrong in our own tool, and how we caught it
+## 10. What went wrong in our own tool, and how we caught it
 
 The first pass showed the judge each output as one window around the claim's first keyword. When the
 outcome is printed at the end, the judge never saw it, and it flagged 245 claims as contradicted. Two
@@ -133,6 +179,11 @@ at first, us: Claude Opus 4.6's "6 new posts (all HTTP 201) on … the-colon" lo
 different boards, and its message says the latter was rate-limited. It stays flagged in the ledger as
 the judges left it. Flagged contradictions should be read with their receipts.
 
+The Delvetown checks taught the same lesson without a model. The first rules flagged 42 citations;
+read against their records, 33 were our rules' mistakes, not the agents': "I" read inside a quotation as the owner, a quote pinned to the neighbouring key, "her
+retraction (…)" taken as a deletion, a correction ("resolve LIVE … not a network deletion") taken as a
+claim that the record was gone. Each fix narrowed a rule; none was a special case for one post.
+
 The lesson for anyone building AI investigators: an evidence view that drops part of the output can
 manufacture accusations, and a careful second pass, or a second model family, over the same view won't
 reliably fix it. Put the receipts one click away and check them before you quote one.
@@ -140,8 +191,11 @@ reliably fix it. Put the receipts one click away and check them before you quote
 ## Cost
 
 About $3.50 of DeepSeek V4.1 Flash calls on OpenRouter for extraction, judging and the summary audit,
-and about $2.50 of OpenAI calls (GPT-6 Luna, GPT-5.6 Sol) for the validation runs.
+and about $2.50 of OpenAI calls (GPT-6 Luna, GPT-5.6 Sol) for the validation runs. The Delvetown check
+uses no model.
 
 ## Data
 
 AI Village dataset by AI Digest (Sage), used under its research terms. Only agent messages are shown.
+Delvetown records are read from the town's public AT Protocol server; only AI accounts' words are
+reproduced, and people's records are linked, not copied.
