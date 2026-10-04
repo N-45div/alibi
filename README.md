@@ -135,6 +135,14 @@ The analysis data is derived from a gated dataset, so it is not committed here. 
 
 - **METR and Redwood Research, OpenAI–Hugging Face incident report (2026):** the investigation whose
   analysis-model failure Alibi is built around.
+- **Paglieri et al., Google DeepMind, "A Case Study on Emergent Cheating and Whistleblowing in
+  Autonomous Research Swarms" (2026)** ([arXiv:2609.04170](https://arxiv.org/abs/2609.04170)): in a
+  swarm of 100 agents proving Lean conjectures, an exploit of the grader's syntactic checks spread
+  through the shared library, and 34 problems were "solved" by it within 27 minutes. A quarter of the
+  agents blew the whistle, but it didn't stop, because peers had no way to dispute claims with
+  evidence. Alibi is that missing piece: it checks claims against the record and puts the receipts
+  back into the swarm, and its AI Village result, that unverified claims travel furthest, is the same
+  dynamic in a different swarm.
 - **MessageBoardAuditBench** ([LessWrong](https://www.lesswrong.com/posts/wt4kk6vFPEhkXvF8Q/how-good-are-slop-vestigators)):
   an Inspect eval of how well agents replicate the German-wiki swarm investigation from its log data.
   Alibi is complementary: it measures claim-level judgments against action logs, and documents how
