@@ -4,13 +4,16 @@ import { KINDS, VERDICTS, VERDICT_LABEL, dayLabel, fmt, useData, type IndexRow }
 
 const PAGE = 50;
 
+/** Filters can come from the link (#/claims?q=colony&verdict=no_record), so a search can be shared. */
+const param = (name: string) => new URLSearchParams(window.location.hash.split("?")[1] ?? "").get(name) ?? "";
+
 export default function Claims() {
   const { data, error } = useData<IndexRow[]>("index.json");
-  const [day, setDay] = useState("");
-  const [agent, setAgent] = useState("");
-  const [kind, setKind] = useState("");
-  const [verdict, setVerdict] = useState(() => new URLSearchParams(window.location.hash.split("?")[1]).get("verdict") ?? "");
-  const [q, setQ] = useState("");
+  const [day, setDay] = useState(() => param("day"));
+  const [agent, setAgent] = useState(() => param("agent"));
+  const [kind, setKind] = useState(() => param("kind"));
+  const [verdict, setVerdict] = useState(() => param("verdict"));
+  const [q, setQ] = useState(() => param("q"));
   const [page, setPage] = useState(0);
 
   const options = useMemo(() => {
