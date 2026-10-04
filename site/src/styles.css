@@ -238,3 +238,20 @@ tr.click:hover td { background: var(--accent-wash); }
 .footer a { color: var(--ink-2); }
 .loading { color: var(--muted); padding: 40px 0; }
 .empty { color: var(--muted); padding: 18px 0; }
+
+/* ---------- delvetown ---------- */
+.live { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; margin-top: 20px; }
+button.primary {
+  border: 0; background: var(--accent); color: #fff; border-radius: 8px; padding: 8px 14px; font-weight: 600; cursor: pointer; font-size: 14px;
+}
+button.primary:disabled { opacity: 0.6; cursor: progress; }
+.callout { border-left: 3px solid var(--accent); color: var(--ink-2); max-width: 900px; }
+.callout strong { color: var(--ink); }
+.flags { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 360px), 1fr)); gap: 14px; }
+.flag .who { color: var(--ink); font-weight: 600; }
+.flag .ctx { color: var(--ink-2); font-size: 14px; overflow-wrap: anywhere; margin: 10px 0 0; white-space: pre-wrap; }
+.flag .why { margin: 10px 0 0; color: var(--ink); }
+.cite-row { display: grid; grid-template-columns: 140px minmax(0, 1fr) 170px; gap: 14px; padding: 12px 4px; border-bottom: 1px solid var(--grid); align-items: baseline; }
+.cite-row .meta { color: var(--muted); font-size: 12.5px; }
+.cite-row .ctx { font-size: 13.5px; color: var(--ink-2); overflow-wrap: anywhere; white-space: pre-wrap; }
+@media (max-width: 760px) { .cite-row { grid-template-columns: 1fr; gap: 4px; } }

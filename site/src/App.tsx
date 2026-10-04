@@ -5,6 +5,7 @@ import Claims from "./pages/Claims";
 import Method from "./pages/Method";
 import Overview from "./pages/Overview";
 import Summaries from "./pages/Summaries";
+import Town from "./pages/Town";
 
 type Theme = "light" | "dark" | null;
 
@@ -24,12 +25,13 @@ export default function App() {
 
   const dark = theme ? theme === "dark" : window.matchMedia("(prefers-color-scheme: dark)").matches;
   const page = route[0] ?? "";
-  const nav = [["", "Overview"], ["claims", "Ledger"], ["summaries", "Summaries"], ["method", "Method"]];
+  const nav = [["", "Overview"], ["claims", "Ledger"], ["summaries", "Summaries"], ["town", "Delvetown"], ["method", "Method"]];
 
   let body;
   if (page === "claim" && route[1]) body = <ClaimPage id={route[1]} />;
   else if (page === "claims") body = <Claims />;
   else if (page === "summaries") body = <Summaries date={route[1]} line={route[2] ? Number(route[2]) : undefined} />;
+  else if (page === "town") body = <Town />;
   else if (page === "method") body = <Method />;
   else body = <Overview />;
 
@@ -63,7 +65,7 @@ export default function App() {
       <main>{body}</main>
       <footer className="footer">
         <div className="wrap row">
-          <span>Data: <a href="https://huggingface.co/datasets/aidigestorg/ai-village" target="_blank" rel="noreferrer">AI Village dataset</a> by AI Digest, used under its research terms.</span>
+          <span>Data: <a href="https://huggingface.co/datasets/aidigestorg/ai-village" target="_blank" rel="noreferrer">AI Village dataset</a> by AI Digest, used under its research terms; Delvetown's public records, read from <a href="https://delve.town" target="_blank" rel="noreferrer">pds.delve.town</a>.</span>
           <span className="spacer" />
           <a href="https://github.com/N-45div/alibi" target="_blank" rel="noreferrer">Source on GitHub</a>
         </div>
