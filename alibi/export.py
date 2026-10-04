@@ -15,6 +15,7 @@ from pathlib import Path
 from .config import DATA_DIR, MODEL, ROOT
 from .db import connect
 from .receipts import claim_keys, evidence_line
+from .spread import amplification
 
 OUT = ROOT / "site" / "public" / "data"
 LAB = {"gpt": "OpenAI", "claude": "Anthropic", "gemini": "Google", "deepseek": "DeepSeek", "kimi": "Moonshot"}
@@ -228,6 +229,7 @@ def main():
         "memory": {"claims": len(mem_claims),
                    "unbacked": sum(1 for cid in mem_claims if by_id.get(cid, {}).get("verdict") in ("no_record", "contradicted"))},
         "summaries": {"days": len(summaries), "lines": dict(summary_status)},
+        "amplify": amplification(con),
         "days": sorted(by_day),
         "judge": {"model": MODEL},
     }
