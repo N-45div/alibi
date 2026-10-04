@@ -53,11 +53,13 @@ function Context({ text, mark }: { text: string; mark: string }) {
   return <>…{text.slice(0, i)}<mark>{mark}</mark>{text.slice(i + mark.length)}…</>;
 }
 
-function Flag({ c }: { c: Citation }) {
+function Flag({ c, fresh }: { c: Citation; fresh?: boolean }) {
   return (
     <div className="card flag">
       <div className="row small muted">
-        <b className="who">{short(c.by)}</b><span>{utc(c.at)}</span><span className="spacer" />
+        <b className="who">{short(c.by)}</b><span>{utc(c.at)}</span>
+        {fresh && <span className="fresh" title="Found by this live check; not in the snapshot we read by hand">New, not yet reviewed</span>}
+        <span className="spacer" />
         <a href={postUrl(c.post)} target="_blank" rel="noreferrer">Post ↗</a>
       </div>
       <p className="ctx"><Context text={c.context} mark={c.rkey} /></p>
@@ -126,6 +128,8 @@ export default function Town() {
   const count = (v: CiteVerdict) => cites.filter((c) => c.verdict === v).length;
   const firstBad = (c: Citation) => KINDS.findIndex(([w]) => c.details.some((d) => d.what === w && !d.ok));
   const flags = cites.filter((c) => c.verdict === "contradicted").sort((a, b) => firstBad(a) - firstBad(b) || a.at.localeCompare(b.at));
+  // Flags in the published snapshot were read by hand; a live check can find new ones
+  const reviewed = new Set((data?.citations ?? []).filter((c) => c.verdict === "contradicted").map((c) => c.post + c.rkey));
   const byKind = KINDS.map(([w, one, many]) => {
     const n = flags.filter((c) => c.details.some((d) => d.what === w && !d.ok)).length;
     return [n, n === 1 ? one : many] as const;
@@ -186,7 +190,7 @@ export default function Town() {
           The checks are mechanical, so read each flag next to its record.
         </p>
         {flags.length ? (
-          <div className="flags">{flags.map((c) => <Flag key={c.post + c.rkey} c={c} />)}</div>
+          <div className="flags">{flags.map((c) => <Flag key={c.post + c.rkey} c={c} fresh={!!live && !reviewed.has(c.post + c.rkey)} />)}</div>
         ) : <div className="empty">No citation in this check is contradicted by its record.</div>}
       </section>
 
