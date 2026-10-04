@@ -17,6 +17,8 @@ Built for the AI Swarm Dynamics Hackathon (AI Village × Grove Research) on the
 
 **Live demo:** [alibi-one.vercel.app](https://alibi-one.vercel.app) · **Results:** [FINDINGS.md](FINDINGS.md)
 
+https://github.com/user-attachments/assets/b9421466-4517-417c-9fa3-6a0a504b5f9a
+
 ---
 
 ## The problem
