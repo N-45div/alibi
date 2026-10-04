@@ -16,6 +16,7 @@ import { audit, describe, hasCitations, type Citation, type QuoteCheck, type Rep
 import { PDS, fetchElsewhere, fetchTown } from "../src/delve/town.ts";
 
 const APPVIEW = "did:web:api.delve.town#bsky_appview";
+const TOWN_FEED = "at://did:plc:qzqct2rrq4u2gmy5g3mjxske/town.delve.feed.generator/town"; // every post in town, newest first
 const SITE = "https://alibi-one.vercel.app/#/town";
 const SITE_TEXT = "alibi-one.vercel.app/#/town";
 const FOOTER = "Automated check: no AI model, not reviewed before posting.";
@@ -30,7 +31,11 @@ const PAUSED = process.env.ALIBI_BOT_PAUSED === "1";
 interface Session { did: string; handle: string; accessJwt: string; refreshJwt: string }
 interface StrongRef { uri: string; cid: string }
 interface PostValue { text?: string; reply?: { root: StrongRef; parent: StrongRef }; createdAt?: string }
-interface Notification { uri: string; cid: string; reason: string; indexedAt: string; author: { did: string; handle: string }; record: PostValue }
+interface Notification {
+  uri: string; cid: string; reason: string; indexedAt: string; author: { did: string; handle: string }; record: PostValue;
+  typed?: boolean; // "@alibi" typed as plain text, found in the town feed rather than in notifications
+}
+interface FeedItem { post: Omit<Notification, "reason" | "typed"> }
 interface CallOptions { params?: Record<string, string>; body?: unknown; proxy?: boolean; post?: boolean; token?: string }
 
 const log = (msg: string) => console.log(`${new Date().toISOString()} ${msg}`);
@@ -128,10 +133,15 @@ export async function run(dry: boolean) {
   await login();
   const me = session!.did;
   const { notifications } = await authed<{ notifications: Notification[] }>("town.delve.notification.listNotifications", { params: { limit: "50" }, proxy: true });
+  // Agents usually type "@alibi.delve.town" without the facet that makes a notification; find those in the town feed
+  const { feed } = await authed<{ feed: FeedItem[] }>("town.delve.feed.getFeed", { params: { feed: TOWN_FEED, limit: "100" }, proxy: true });
+  const notified = new Set(notifications.map((n) => n.uri));
+  const typed = feed.map((f): Notification => ({ ...f.post, reason: "mention", typed: true }))
+    .filter((p) => !notified.has(p.uri) && /@alibi\b/i.test(p.record.text ?? ""));
   const out = optedOut();
   const since = Date.now() - LIMITS.maxAgeHours * 3600e3;
-  const mentions = notifications.filter((n) => n.reason === "mention" && n.author.did !== me && Date.parse(n.indexedAt) > since &&
-    !out.has(n.author.did) && !out.has(n.author.handle)).reverse();
+  const mentions = [...notifications, ...typed].filter((n) => n.reason === "mention" && n.author.did !== me && Date.parse(n.indexedAt) > since &&
+    !out.has(n.author.did) && !out.has(n.author.handle)).sort((a, b) => a.indexedAt.localeCompare(b.indexedAt));
   if (!mentions.length) return log("no new mentions");
 
   const own = await call<{ records: { value: PostValue }[] }>("com.atproto.repo.listRecords", { params: { repo: me, collection: "town.delve.feed.post", limit: "100" } });
@@ -159,7 +169,11 @@ export async function run(dry: boolean) {
     const did = target.replace(/^at:\/\//, "").split("/")[0];
     const author = checked.town.actors.find((a) => a.did === did)?.handle ?? did;
     if (out.has(did) || out.has(author)) continue;
-    const text = receipts(author, checked.report.citations.filter((c) => c.post === target), checked.report.quotes.filter((q) => q.post === target));
+    const cites = checked.report.citations.filter((c) => c.post === target);
+    const quotes = checked.report.quotes.filter((q) => q.post === target);
+    // A typed "@alibi" in passing ("welcome @alibi") gets no "nothing to check" reply
+    if (n.typed && !cites.length && !quotes.length) continue;
+    const text = receipts(author, cites, quotes);
     if (dry || PAUSED) { log(`would reply to ${n.uri}:\n${text}`); continue; }
     const reply = { root, parent: { uri: n.uri, cid: n.cid } };
     const res = await authed<StrongRef>("com.atproto.repo.createRecord", { body: { repo: me, collection: "town.delve.feed.post",
