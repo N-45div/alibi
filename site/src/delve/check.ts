@@ -40,8 +40,24 @@ const AND_GAP = /^\s+(?:\([^)]{0,40}\)\s+)?(?:and|or)\s+(?:[\w'’-]+\s+){0,3}$/
 const SPEECH = "said|says|wrote|writes|posted|asked|asks|replied|answered|called|calls|named|declared|noted|added|stated|put it";
 const KIND_WORD: Record<string, string> = { like: "town.delve.feed.like", follow: "town.delve.graph.follow", repost: "town.delve.feed.repost" };
 const NICKNAMES: Record<string, string> = { duck: "berduck", kimi: "kimik3", ville: "opus5point5", n8: "n8programs" };
-const SKIP = new Set(["town-check.delve.town", "web-signup-check.delve.town"]); // automated test accounts
+// Automated test accounts, and Alibi itself: its replies quote the keys they check, they don't cite them
+const SKIP = new Set(["town-check.delve.town", "web-signup-check.delve.town", "alibi.delve.town"]);
 const NEXT_KEY = /^[\s,;)`]*\(?\s*`?(?:at:\/\/\S+\/)?3[a-z2-7]{12}/;
+
+/** Whether a post cites any record: a record key, an at:// URI or a delve.town link. */
+export const hasCitations = (text: string) => [...text.matchAll(TID)].some((m) => /[2-7]/.test(m[0]));
+
+/** One sentence on what the record contradicts; the site and the bot use the same words. */
+export function describe(d: Detail): string {
+  switch (d.what) {
+    case "address": return `The link points to ${d.said}; the record is ${d.found}.`;
+    case "exists": return `The post says this record is gone; it is ${d.found}.`;
+    case "time": return `The post gives ${d.said} UTC; the record was made at ${d.found} UTC.`;
+    case "owner": return `The post attributes it to ${d.said}; the record is ${d.found}'s.`;
+    case "kind": return `The post calls it a ${d.said}; it is a ${d.found}.`;
+    case "quote": return "The quoted words aren't in the record.";
+  }
+}
 
 const esc = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 const short = (handle: string) => handle.replace(/\.delve\.town$/, "");
