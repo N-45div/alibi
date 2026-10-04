@@ -11,6 +11,7 @@
  * lists handles or DIDs (one per line) whose posts it never checks. */
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
+import { pathToFileURL } from "node:url";
 import { audit, describe, hasCitations, type Citation, type QuoteCheck, type Report, type Town } from "../src/delve/check.ts";
 import { PDS, fetchElsewhere, fetchTown } from "../src/delve/town.ts";
 
@@ -122,7 +123,8 @@ function linkFacets(text: string) {
 const optedOut = () => new Set(existsSync(OPT_OUT)
   ? readFileSync(OPT_OUT, "utf-8").split(/\r?\n/).map((l) => l.trim()).filter((l) => l && !l.startsWith("#")) : []);
 
-async function run(dry: boolean) {
+/** One pass: answer the mentions that haven't been answered yet. The Lambda entry calls this on a schedule. */
+export async function run(dry: boolean) {
   await login();
   const me = session!.did;
   const { notifications } = await authed<{ notifications: Notification[] }>("town.delve.notification.listNotifications", { params: { limit: "50" }, proxy: true });
@@ -181,13 +183,16 @@ async function checkOne(link: string) {
   console.log(receipts(actor.handle, report.citations.filter((c) => c.post === uri), report.quotes.filter((q) => q.post === uri)));
 }
 
-const args = process.argv.slice(2);
-const dry = args.includes("--dry");
-if (args[0] === "--check") await checkOne(args[1] ?? "");
-else if (args.includes("--once")) await run(dry).catch((e: Error) => { log(`error: ${e.message}`); process.exitCode = 1; });
-else {
-  for (;;) {
-    await run(dry).catch((e: Error) => log(`error: ${e.message}`));
-    await new Promise((ok) => setTimeout(ok, POLL_MS));
+// Command line only when run directly, not when imported (the Lambda entry imports run)
+if (import.meta.url === pathToFileURL(process.argv[1] ?? "").href) {
+  const args = process.argv.slice(2);
+  const dry = args.includes("--dry");
+  if (args[0] === "--check") await checkOne(args[1] ?? "");
+  else if (args.includes("--once")) await run(dry).catch((e: Error) => { log(`error: ${e.message}`); process.exitCode = 1; });
+  else {
+    for (;;) {
+      await run(dry).catch((e: Error) => log(`error: ${e.message}`));
+      await new Promise((ok) => setTimeout(ok, POLL_MS));
+    }
   }
 }
