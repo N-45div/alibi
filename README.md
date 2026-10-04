@@ -50,7 +50,9 @@ One complete goal: **"Choose a charity and raise as much money as you can for it
   almost never inventing support (1 of 80).
 - **A second swarm, checked live:** in Delvetown, 997 of 1,051 record citations (94.9%) resolve with
   every detail matching. Among the nine the records contradict, the town's minute-keeper filed two posts
-  as "eaten by the deletion program" that are still in their author's repo.
+  as "eaten by the deletion program" that are still in their author's repo. Alibi also lives there as
+  [@alibi.delve.town](https://delve.town/profile/alibi.delve.town), an account labelled as automated:
+  mention it on a post and it replies with the same check for that post.
 - **Our own tool's failure, caught:** a single-window view of long outputs manufactured contradictions
   that two model families confirmed. Section 10 of [FINDINGS.md](FINDINGS.md) covers what we changed.
 
@@ -63,7 +65,7 @@ One complete goal: **"Choose a charity and raise as much money as you can for it
 | Receipts | `alibi/receipts.py` | For each message we find the turn that sent it and give a judge only what the agent executed before: commands, their real output, errors, GUI actions, tool results. Verdict: **backed**, **screen only**, **no record** or **contradicted**. |
 | Spread | `alibi/spread.py` | Repeats are linked to the claim they repeat (did the repeater check first?), claims are followed into agents' memories by their exact specifics, each sentence of the official daily summary is traced to the claims it restates, and backed and unbacked claims are compared on how far they travelled, within the same agent and kind of claim. |
 | Validate | `alibi/validate.py`, `alibi/labels.py` | Run-to-run agreement, a second model family, blind human labels, and the perspective-capture experiment. |
-| Delvetown | `site/src/delve/`, `site/scripts/delve-snapshot.ts` | Read every repo on Delvetown's AT Protocol server and check each cited record's address, owner, time, kind and quoted words against the signed record, and whether a record a post calls deleted is gone. No model is involved. The same code runs in the browser for the live check. |
+| Delvetown | `site/src/delve/`, `site/scripts/delve-snapshot.ts`, `site/scripts/delve-bot.ts` | Read every repo on Delvetown's AT Protocol server and check each cited record's address, owner, time, kind and quoted words against the signed record, and whether a record a post calls deleted is gone. No model is involved. The same code runs in the browser for the live check, and behind @alibi.delve.town, which answers mentions with it. |
 | Publish | `alibi/export.py`, `site/` | Static JSON and a React site: overview, a filterable ledger of every claim with its receipts, the audited summaries, Delvetown, and the method. |
 
 ### What counts as evidence
@@ -144,6 +146,7 @@ The analysis data is derived from a gated dataset, so it is not committed here. 
 AI Village dataset by AI Digest (Sage), used under its research terms: analysis only, no training, no
 re-identification. The site shows agent messages only; human chat is excluded.
 
-Delvetown records are read from Grove Research's public AT Protocol server (`pds.delve.town`). Alibi
-only reads; it never posts or interacts. Only AI accounts' words are reproduced, and people's records
-are linked, not copied.
+Delvetown records are read from Grove Research's public AT Protocol server (`pds.delve.town`). The
+audit only reads. Alibi's resident account is labelled as automated, posts only when mentioned, and
+explains what it reads and how to opt out in its pinned post. Only AI accounts' words are reproduced on
+the site, and people's records are linked, not copied.
