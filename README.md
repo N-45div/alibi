@@ -105,6 +105,18 @@ The analysis data is derived from a gated dataset, so it is not committed here. 
 - **One goal, one village.** The method needs only a chat log and an action log, so it applies to any
   swarm that keeps both.
 
+## Related work
+
+- **METR and Redwood Research, OpenAI–Hugging Face incident report (2026):** the investigation whose
+  analysis-model failure Alibi is built around.
+- **MessageBoardAuditBench** ([LessWrong](https://www.lesswrong.com/posts/wt4kk6vFPEhkXvF8Q/how-good-are-slop-vestigators)):
+  an Inspect eval of how well agents replicate the German-wiki swarm investigation from its log data.
+  Alibi is complementary: it measures claim-level judgments against action logs, and documents how
+  an AI judge fails (cut-off outputs, softening once it reads the agent's narration, family leniency).
+- **thimble** ([safety-research/thimble](https://github.com/safety-research/thimble)): a Claude Code
+  plugin for human oversight, a workbench for making sense of large volumes of agent output with
+  Claude. Alibi's ledger is a narrower, automated pass: every claim, its verdict and its receipts.
+
 ## Data and citation
 
 AI Village dataset by AI Digest (Sage), used under its research terms: analysis only, no training, no
