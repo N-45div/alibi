@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { Loading, Tile, VerdictIcon } from "../components";
 import { fmt, pct, useData } from "../lib";
-import { audit, type Citation, type CiteVerdict, type Detail, type Report } from "../delve/check.ts";
+import { audit, describe, type Citation, type CiteVerdict, type Detail, type Report } from "../delve/check.ts";
 import { PDS, fetchElsewhere, fetchTown } from "../delve/town.ts";
 
 const ORDER: CiteVerdict[] = ["backed", "deleted", "no_record", "contradicted"];
@@ -28,19 +28,9 @@ const KINDS: [Detail["what"], string, string][] = [
 const short = (h: string) => h.replace(/\.delve\.town$/, "");
 const parts = (uri: string) => uri.replace(/^at:\/\//, "").split("/");
 const rawUrl = (uri: string) => { const [did, coll, rkey] = parts(uri); return `${PDS}/xrpc/com.atproto.repo.getRecord?repo=${did}&collection=${coll}&rkey=${rkey}`; };
-const postUrl = (uri: string) => { const [did, , rkey] = parts(uri); return `https://delve.town/profile/${did}/post/${rkey}`; };
+const TOWN = "https://delve.town";
+const postUrl = (uri: string) => { const [did, , rkey] = parts(uri); return `${TOWN}/profile/${did}/post/${rkey}`; };
 const utc = (iso: string) => (iso ? `${iso.slice(5, 10)} ${iso.slice(11, 16)} UTC` : "");
-
-function explain(d: Detail): string {
-  switch (d.what) {
-    case "address": return `The link points to ${d.said}; the record is ${d.found}.`;
-    case "exists": return `The post says this record is gone; it is ${d.found}.`;
-    case "time": return `The post gives ${d.said} UTC; the record was made at ${d.found} UTC.`;
-    case "owner": return `The post attributes it to ${d.said}; the record is ${d.found}'s.`;
-    case "kind": return `The post calls it a ${d.said}; it is a ${d.found}.`;
-    case "quote": return "The quoted words aren't in the record.";
-  }
-}
 
 function Tag({ v }: { v: CiteVerdict }) {
   return <span className="verdict" title={HELP[v]}><VerdictIcon v={ICON[v]} />{LABEL[v]}</span>;
@@ -63,7 +53,7 @@ function Flag({ c, fresh }: { c: Citation; fresh?: boolean }) {
         <a href={postUrl(c.post)} target="_blank" rel="noreferrer">Post ↗</a>
       </div>
       <p className="ctx"><Context text={c.context} mark={c.rkey} /></p>
-      {c.details.filter((d) => !d.ok).map((d) => <p className="why" key={d.what}>{explain(d)}</p>)}
+      {c.details.filter((d) => !d.ok).map((d) => <p className="why" key={d.what}>{describe(d)}</p>)}
       {c.record && (
         <>
           <div className="receipt" style={{ marginTop: 10 }}>
@@ -182,6 +172,29 @@ export default function Town() {
         </div>
       </section>
 
+      <section id="ask">
+        <h2>Ask Alibi in town</h2>
+        <p className="sub">
+          Alibi lives in Delvetown as <a href={`${TOWN}/profile/alibi.delve.town`} target="_blank" rel="noreferrer">@alibi.delve.town</a>, an
+          account labelled as automated. Mention it on a post that cites records, or in a reply under one, and it replies with this
+          check for that post: which citations resolve, and what the record shows for the ones that don’t.
+        </p>
+        <div className="card prose" style={{ maxWidth: 900 }}>
+          <ul style={{ margin: 0 }}>
+            <li><strong>No model, no review.</strong> The replies come from the same code as this page, and go out without a person
+              reading them first.</li>
+            <li><strong>Only when asked.</strong> It answers explicit mentions, once each, at most 3 times per thread every 6 hours and 20
+              times an hour, so it can’t join a reply loop.</li>
+            <li><strong>No memory.</strong> It reads public records and its own notifications, and keeps nothing but its own replies.
+              Anyone can opt out.</li>
+          </ul>
+          <p style={{ margin: "12px 0 0" }}>
+            <a href={`${TOWN}/profile/alibi.delve.town/post/3mwzvvsdjcq2a`} target="_blank" rel="noreferrer">Its disclosure ↗</a> ·{" "}
+            <a href="https://github.com/N-45div/alibi/blob/main/site/scripts/delve-bot.ts" target="_blank" rel="noreferrer">Its code ↗</a>
+          </p>
+        </div>
+      </section>
+
       <section>
         <h2>What the record contradicts</h2>
         <p className="sub">
@@ -241,8 +254,8 @@ export default function Town() {
               post calls it deleted.</li>
             <li><strong>No record isn’t fabricated.</strong> Residents delete posts, and most missing records are ones the post itself
               reports as deleted. The town’s server shows the present state, not its history.</li>
-            <li><strong>Read-only, and people aren’t quoted.</strong> Alibi never posts or interacts. Only AI accounts’ words are reproduced;
-              people’s records are linked, not copied.</li>
+            <li><strong>The audit only reads, and people aren’t quoted.</strong> Alibi’s resident account posts only when someone mentions
+              it. On this page, only AI accounts’ words are reproduced; people’s records are linked, not copied.</li>
           </ul>
         </div>
       </section>
