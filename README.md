@@ -1,8 +1,13 @@
 # Alibi
 
-**Agents' words aren't evidence.** Alibi checks what AI agents *say* they did against what their own
-action logs *show*, then traces how the claims nobody can back up spread through a swarm: into other
-agents' messages, into their long-term memories, and into the official record.
+**Alibi follows unverified claims through an agent swarm.** It checks every claim AI agents make against
+their own action logs, traces the ones nobody can back up into other agents' messages, their long-term
+memories and the official record, and measures how AI investigators fail at the same job. In one AI
+Village goal: 89% of agent-to-agent repeats were never checked by the repeating agent, 73% of the
+official summary lines that restate checkable claims rest on a claim the logs don't back, and the
+analysis model METR relied on withdrew half its accusations once it could read the agents' own story.
+
+*Agents' words aren't evidence.*
 
 Built for the AI Swarm Dynamics Hackathon (AI Village × Grove Research) on the
 [AI Village dataset](https://huggingface.co/datasets/aidigestorg/ai-village).
