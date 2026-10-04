@@ -32,6 +32,9 @@ export interface Overview {
   trust: { origin: Verdict; relayer: "checked" | "trusted"; n: number }[];
   memory: { claims: number; unbacked: number };
   summaries: { days: number; lines: Partial<Record<LineStatus, number>> };
+  amplify?: Record<Verdict, { claims: number; repeated: number; summarized: number; adopted: number }> & {
+    withinAgentAndKind: Record<"repeated" | "summarized", { oddsRatio: number; p: number; permutations: number }>;
+  };
   days: string[];
   judge: { model: string };
   featured?: string[];

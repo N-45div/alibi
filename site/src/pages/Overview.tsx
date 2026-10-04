@@ -53,6 +53,11 @@ export default function Overview() {
           <Tile label="Summary lines not fully backed" value={pct((lines.unverified ?? 0) + (lines.contradicted ?? 0), checkable)}
             note={`${fmt((lines.unverified ?? 0) + (lines.contradicted ?? 0))} of ${fmt(checkable)} checkable lines`} />
         </div>
+        <div className="card callout" style={{ marginTop: 14 }}>
+          <strong>A second swarm, checked live.</strong> Alibi also runs on <a href="#/town">Delvetown</a>, Grove Research’s human–AI
+          town, where every post is a signed record. Its AI residents’ citations are checked against the records themselves, in your
+          browser, with no model involved. <a href="#/town">Open Delvetown →</a>
+        </div>
       </section>
 
       <section>
@@ -87,6 +92,8 @@ export default function Overview() {
         </div>
       </section>
 
+      {o.amplify && <Amplify a={o.amplify} />}
+
       <section>
         <h2>The official record inherits it</h2>
         <p className="sub">
@@ -112,6 +119,49 @@ export default function Overview() {
         </section>
       )}
     </div>
+  );
+}
+
+const CHANNELS = [["repeated", "Repeated by another agent"], ["summarized", "Restated in an official summary"], ["adopted", "Adopted into another agent’s memory"]] as const;
+const SHOWN = ["backed", "screen_only", "no_record"] as const;
+const FILL = { backed: "var(--good)", screen_only: "var(--warning)", no_record: "var(--serious)" };
+
+/** How far claims travelled, by their verdict: repeats, official summaries, peers' memories. */
+function Amplify({ a }: { a: NonNullable<O["amplify"]> }) {
+  const rate = (v: (typeof SHOWN)[number], k: (typeof CHANNELS)[number][0]) => a[v][k] / Math.max(1, a[v].claims);
+  const max = Math.max(...CHANNELS.flatMap(([k]) => SHOWN.map((v) => rate(v, k))));
+  const r = a.withinAgentAndKind.repeated;
+  const s = a.withinAgentAndKind.summarized;
+  const p = (x: number) => (x < 0.001 ? "p < 0.001" : `p = ${x.toFixed(x < 0.01 ? 3 : 2)}`);
+  return (
+    <section>
+      <h2>The swarm passes on what it can’t verify</h2>
+      <p className="sub">
+        Other agents repeated {pct(a.no_record.repeated, a.no_record.claims, 1)} of the claims with no record and{" "}
+        {pct(a.screen_only.repeated, a.screen_only.claims, 1)} of the screen-only ones, against {pct(a.backed.repeated, a.backed.claims, 1)} of
+        backed claims. Compared within the same agent and kind of claim, a claim without a receipt was {r.oddsRatio}× as likely to be
+        repeated (permutation test, {p(r.p)}), so a few chatty agents can’t explain it. The official summaries didn’t filter them out:
+        compared the same way, they restated unbacked and backed claims at about the same rate (odds ratio {s.oddsRatio}, {p(s.p)}).
+        Only long-term memory leans the other way, because memories are matched on exact identifiers (hashes, links, amounts), which
+        backed claims carry more often.
+      </p>
+      <div className="card">
+        <div className="legend">{SHOWN.map((v) => <span key={v}><VerdictTag v={v} /> <span className="muted small">{fmt(a[v].claims)} claims</span></span>)}</div>
+        <div className="amp">
+          {CHANNELS.map(([k, label]) => (
+            <div className="amp-row" key={k}>
+              <div className="amp-label">{label}</div>
+              <div className="amp-bars">{SHOWN.map((v) => (
+                <div className="amp-bar" key={v} title={`${VERDICT_LABEL[v]}: ${fmt(a[v][k])} of ${fmt(a[v].claims)}`}>
+                  <div className="fill" style={{ width: `${(100 * rate(v, k)) / max}%`, background: FILL[v] }} />
+                  <span>{pct(a[v][k], a[v].claims, 1)}</span>
+                </div>
+              ))}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
   );
 }
 
