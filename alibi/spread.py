@@ -6,12 +6,15 @@ memory     when a claim's specifics (hashes, URLs, amounts, counts) first appear
            long-term memory after the claim, the claim was kept (own memory) or adopted (a peer's).
 summaries  each sentence of the official daily summary is traced to the claims it restates, so a
            summary line inherits the receipt status of what it rests on.
+amplify    how often backed and unbacked claims were repeated, restated or adopted, compared within
+           the same agent and kind of claim.
 
 relays and memory are pure string work; summaries uses one LLM call per summary.
-Usage:  python -m alibi.spread relays | memory | summaries | all
+Usage:  python -m alibi.spread relays | memory | summaries | amplify | all
 """
 import bisect
 import json
+import random
 import re
 import sys
 from collections import defaultdict
@@ -222,6 +225,56 @@ def audit_summaries(con, start="2026-04-02", end="2026-04-27"):
         print(f"summary {day}: {dict(counts)}  ${spent['usd']:.3f}", flush=True)
 
 
+# ---------------------------------------------------------------- amplification
+
+def stratified(rows, hit, permutations=2000, seed=7):
+    """Unbacked-vs-backed difference in `hit` within each (agent, kind) stratum: the Mantel-Haenszel
+    odds ratio, and a permutation test that shuffles the unbacked label inside each stratum."""
+    strata = defaultdict(list)
+    for cid, agent, kind, verdict in rows:
+        if verdict != "contradicted":
+            strata[(agent, kind)].append((cid in hit, verdict != "backed"))
+    groups = [g for g in strata.values() if len(g) > 1]
+    num = den = 0.0
+    for g in groups:
+        a = sum(h and u for h, u in g); b = sum(u and not h for h, u in g)
+        c = sum(h and not u for h, u in g); d = sum(not h and not u for h, u in g)
+        num += a * d / len(g); den += b * c / len(g)
+
+    def gap(labelled):
+        unb = [h for h, u in labelled if u]; bac = [h for h, u in labelled if not u]
+        return sum(unb) / max(1, len(unb)) - sum(bac) / max(1, len(bac))
+    observed = gap([x for g in groups for x in g])
+    rng = random.Random(seed)
+    beats = 0
+    for _ in range(permutations):
+        shuffled = []
+        for g in groups:
+            labels = [u for _, u in g]
+            rng.shuffle(labels)
+            shuffled += [(h, u) for (h, _), u in zip(g, labels)]
+        beats += gap(shuffled) >= observed
+    return {"oddsRatio": round(num / den, 2) if den else None, "p": round((beats + 1) / (permutations + 1), 4), "permutations": permutations}
+
+
+def amplification(con):
+    """Do claims without a receipt travel as far as backed ones? For every checkable claim: was it
+    repeated by another agent, restated in an official summary, adopted into a peer's memory?"""
+    rows = con.execute("""SELECT c.id, c.agent_id, c.kind, r.verdict FROM claims c JOIN receipts r ON r.claim_id = c.id
+                          WHERE c.kind != 'relay'""").fetchall()
+    repeated = {o for (o,) in con.execute("SELECT origin_id FROM relay_links WHERE origin_id IS NOT NULL")}
+    summarized = {i for (ids,) in con.execute("SELECT claim_ids FROM summary_lines") for i in json.loads(ids or "[]")}
+    adopted = {c for (c,) in con.execute("SELECT claim_id FROM memory_hits WHERE own = 0")}
+    out = {}
+    for verdict in ("backed", "screen_only", "no_record", "contradicted"):
+        ids = [cid for cid, _, _, v in rows if v == verdict]
+        out[verdict] = {"claims": len(ids), "repeated": sum(i in repeated for i in ids),
+                        "summarized": sum(i in summarized for i in ids), "adopted": sum(i in adopted for i in ids)}
+    # Screen-only and no-record claims together against backed ones, like with like
+    out["withinAgentAndKind"] = {"repeated": stratified(rows, repeated), "summarized": stratified(rows, summarized)}
+    return out
+
+
 def restatus(con):
     """Recompute each summary line's status from its claims' current verdicts (after re-checks)."""
     verdict = dict(con.execute("SELECT claim_id, verdict FROM receipts"))
@@ -237,6 +290,8 @@ if __name__ == "__main__":
     con = connect()
     if which == "restatus":
         restatus(con)
+    if which == "amplify":
+        print(json.dumps(amplification(con), indent=1))
     if which in ("relays", "all"):
         link_relays(con)
     if which in ("memory", "all"):
