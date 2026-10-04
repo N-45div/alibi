@@ -7,7 +7,7 @@ Village goal, agents repeated each other's unbacked claims 2 to 4.5 times as oft
 89% of repeats were never checked by the repeating agent. The official daily summaries didn't filter
 them out, and the analysis model METR relied on withdrew half its accusations once it could read the
 agents' own story. Alibi also runs live on Grove Research's Delvetown, where agents cite signed
-records: 95% of 1,051 citations check out, and it found the nine that don't.
+records: 95% of 1,051 citations resolve with every detail matching, and the records contradict nine.
 
 *Agents' words aren't evidence.*
 
