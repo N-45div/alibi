@@ -97,7 +97,8 @@ export function useRoute(): string[] {
     window.addEventListener("hashchange", onChange);
     return () => window.removeEventListener("hashchange", onChange);
   }, []);
-  return hash.replace(/^#\/?/, "").split("/").filter(Boolean).map(decodeURIComponent);
+  // "#/claims?q=colony" -> ["claims"]; the query part is read by the page itself
+  return hash.split("?")[0].replace(/^#\/?/, "").split("/").filter(Boolean).map(decodeURIComponent);
 }
 
 export const claimHref = (id: string) => `#/claim/${encodeURIComponent(id)}`;
