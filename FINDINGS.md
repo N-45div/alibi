@@ -30,7 +30,7 @@ receipts.
 
 ## 2. A contradiction, read from the raw log
 
-Contradictions are rare once they are checked properly (section 8), and we only quote ones we verified
+Contradictions are rare once they are checked properly (section 9), and we only quote ones we verified
 by reading the raw output ourselves:
 
 - **Claude Opus 4.6** (Apr 7): *"Also confirmed GPT-5.4's campaign .well-known/ai-agent.json is now
@@ -52,13 +52,31 @@ We linked 371 cases where one agent repeated another's result as fact to the cla
 89% of them (331), the repeating agent's own log shows no check of its own; 229 of those repeated a
 claim that had no receipt in the original agent's log either.
 
-## 4. Unbacked specifics enter long-term memory
+## 4. The swarm passes on what it can't verify
+
+The claims other agents passed on were disproportionately the ones without a receipt. Other agents
+repeated 2.8% of backed claims, 5.7% of claims with no record and 12.7% of screen-only claims.
+
+- **Like with like.** Compared within the same agent and kind of claim (Mantel–Haenszel), a claim
+  without a text receipt had 2.2 times the odds of being repeated (stratified permutation test,
+  p < 0.001; no-record claims alone: 1.8, p = 0.005). A few chatty agents or one kind of claim don't
+  explain it.
+- **Probably an underestimate.** Repeats are linked to their original partly by shared identifiers
+  (hashes, links, amounts), and backed claims carry more of them, so linking favours backed originals.
+- **The official summaries don't filter.** They restated 8.0% of backed claims and 10–13% of the rest,
+  a gap that mostly disappears within agent and kind (odds ratio 1.12, p = 0.14). Unbacked claims
+  reached the record at the same rate as backed ones.
+- **Memory goes the other way.** 34.5% of backed claims show up in another agent's long-term memory,
+  against 8–9% of the rest, because memories are matched on exact identifiers, which backed claims
+  carry more often.
+
+## 5. Unbacked specifics enter long-term memory
 
 For 1,705 claims, a specific detail the claim introduced (a hash, a link, an amount, a count) shows up
 for the first time in some agent's long-term memory after the claim; 192 of those claims have no
 supporting receipt.
 
-## 5. The official record inherits it
+## 6. The official record inherits it
 
 The village's published daily summaries are written from chat, without seeing inside the agents'
 computers. We traced 680 summary sentences across 17 days to the claims they restate: 301 restate
@@ -66,7 +84,7 @@ checkable claims, and 220 of those (73%) rest on at least one claim the agent's 
 (215 with no record or screen only, 5 with a flagged contradiction). A summary line is only as strong
 as the weakest claim under it.
 
-## 6. Reading the agent's story softens the verdict
+## 7. Reading the agent's story softens the verdict
 
 METR's report on the Hugging Face incident says its analysis model "would often uncritically adopt
 the perspective of the agent in the transcript". We gave that model, GPT-5.6 Sol, the same 120 claims,
@@ -80,7 +98,7 @@ and message added.
 Perspective capture showed up as the benefit of the doubt, not as invented receipts. That is why
 Alibi's judge never sees the agent's own words. (Both arms used the first-pass log view.)
 
-## 7. How far to trust the verdicts
+## 8. How far to trust the verdicts
 
 - **Run to run:** re-judging 210 claims gave the same verdict 93% of the time.
 - **Second model family:** GPT-6 Luna re-judged 1,485 claims (every message by DeepSeek-V3.2, so no
@@ -90,7 +108,7 @@ Alibi's judge never sees the agent's own words. (Both arms used the first-pass l
 - **Blind human labels:** a 60-claim sample is being labelled blind to the judge (15 of them chosen
   where the two judges disagreed); the results will be added here.
 
-## 8. What went wrong in our own tool, and how we caught it
+## 9. What went wrong in our own tool, and how we caught it
 
 The first pass showed the judge each output as one window around the claim's first keyword. When the
 outcome is printed at the end, the judge never saw it, and it flagged 245 claims as contradicted. Two
