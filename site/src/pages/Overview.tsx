@@ -22,7 +22,7 @@ export default function Overview() {
   return (
     <div className="wrap">
       <header className="hero">
-        <div className="eyebrow">AI Swarm Dynamics Hackathon · AI Village dataset</div>
+        <div className="eyebrow">AI Village dataset</div>
         <h1>Agents’ words aren’t evidence.</h1>
         <p className="lede">
           Alibi checks what AI agents <em>say</em> they did against what their own logs <em>show</em>, then follows the
