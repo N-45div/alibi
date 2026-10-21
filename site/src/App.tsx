@@ -9,6 +9,8 @@ import Town from "./pages/Town";
 
 type Theme = "light" | "dark" | null;
 
+const NAV = [["", "Overview"], ["claims", "Ledger"], ["summaries", "Summaries"], ["town", "Delvetown"], ["method", "Method"]];
+
 function readTheme(): Theme {
   try { return (localStorage.getItem("alibi-theme") as Theme) ?? null; } catch { return null; }
 }
@@ -25,7 +27,12 @@ export default function App() {
 
   const dark = theme ? theme === "dark" : window.matchMedia("(prefers-color-scheme: dark)").matches;
   const page = route[0] ?? "";
-  const nav = [["", "Overview"], ["claims", "Ledger"], ["summaries", "Summaries"], ["town", "Delvetown"], ["method", "Method"]];
+
+  // The tab names the page, so several Alibi tabs can be told apart
+  useEffect(() => {
+    const label = page === "claim" ? "Claim" : NAV.find(([k]) => k === page)?.[1];
+    document.title = page && label ? `${label} · Alibi` : "Alibi · said vs did";
+  }, [page]);
 
   let body;
   if (page === "claim" && route[1]) body = <ClaimPage id={route[1]} />;
@@ -47,7 +54,7 @@ export default function App() {
             Alibi <span className="tag muted" style={{ fontWeight: 400 }}>· said vs did</span>
           </a>
           <nav className="nav" aria-label="Main">
-            {nav.map(([k, label]) => (
+            {NAV.map(([k, label]) => (
               <a key={k} href={`#/${k}`} aria-current={(page === k || (k === "claims" && page === "claim")) ? "page" : undefined}>{label}</a>
             ))}
           </nav>

@@ -10,6 +10,19 @@ const FILTERS = ["day", "agent", "kind", "verdict", "q"] as const;
 const param = (name: string) => new URLSearchParams(window.location.hash.split("?")[1] ?? "").get(name) ?? "";
 const pageParam = () => { const n = Math.floor(Number(param("page"))); return n >= 1 ? n - 1 : 0; };
 
+/** The clipboard API needs focus and permission; the hidden-textarea copy covers browsers that refuse it. */
+async function copyText(text: string): Promise<boolean> {
+  try { await navigator.clipboard.writeText(text); return true; } catch { /* fall back below */ }
+  const ta = document.createElement("textarea");
+  ta.value = text;
+  ta.setAttribute("readonly", "");
+  ta.style.position = "fixed";
+  ta.style.opacity = "0";
+  document.body.appendChild(ta);
+  ta.select();
+  try { return document.execCommand("copy"); } catch { return false; } finally { ta.remove(); }
+}
+
 export default function Claims() {
   const { data, error } = useData<IndexRow[]>("index.json");
   const [day, setDay] = useState(() => param("day"));
@@ -18,6 +31,7 @@ export default function Claims() {
   const [verdict, setVerdict] = useState(() => param("verdict"));
   const [q, setQ] = useState(() => param("q"));
   const [page, setPage] = useState(pageParam);
+  const [copied, setCopied] = useState<"" | "ok" | "fail">("");
 
   // The "Ledger" link (#/claims) or Back/Forward between ledger views re-reads the link
   useEffect(() => {
@@ -68,6 +82,9 @@ export default function Claims() {
     if (window.location.hash !== hash) history.replaceState(history.state, "", hash);
   }, [data, day, agent, kind, verdict, q, at]);
 
+  // "Link copied" belongs to the view it copied
+  useEffect(() => setCopied(""), [day, agent, kind, verdict, q, at]);
+
   if (!data) return <div className="wrap"><Loading error={error} /></div>;
   const set = (f: (v: string) => void) => (e: { target: { value: string } }) => { f(e.target.value); setPage(0); };
 
@@ -97,7 +114,14 @@ export default function Claims() {
         </select>
         <input type="search" placeholder="Search claims, e.g. “commit”, “$115”, “DMs”" value={q} onChange={set(setQ)} aria-label="Search claims" />
       </div>
-      <div className="muted small" style={{ marginBottom: 6 }}>{fmt(rows.length)} matching claims</div>
+      <div className="row muted small" style={{ marginBottom: 6 }}>
+        <span>{fmt(rows.length)} matching claims</span>
+        <span className="spacer" />
+        <span role="status">{copied === "ok" ? "Link copied" : copied === "fail" ? "Couldn’t copy: the link is in the address bar" : ""}</span>
+        <button className="toggle" onClick={async () => setCopied(await copyText(window.location.href) ? "ok" : "fail")}>
+          Copy link to this view
+        </button>
+      </div>
       <div className="claims">
         {rows.slice(at * PAGE, at * PAGE + PAGE).map((r) => <ClaimRow key={r[0]} r={r} />)}
         {rows.length === 0 && <div className="empty">No claims match these filters.</div>}
