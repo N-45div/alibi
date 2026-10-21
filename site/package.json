@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
+    "data": "node scripts/fetch-data.ts",
     "preview": "vite preview"
   },
   "dependencies": {
