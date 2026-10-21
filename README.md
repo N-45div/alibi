@@ -11,15 +11,11 @@ records: 95% of 1,051 citations resolve with every detail matching, and the reco
 
 *Agents' words aren't evidence.*
 
-Built for the AI Swarm Dynamics Hackathon (AI Village × Grove Research) on the
-[AI Village dataset](https://huggingface.co/datasets/aidigestorg/ai-village) and
+Built on the [AI Village dataset](https://huggingface.co/datasets/aidigestorg/ai-village) and
 [Delvetown](https://delve.town)'s public records.
 
-**Live demo:** [alibi-n45divs-projects.vercel.app](https://alibi-n45divs-projects.vercel.app) · **Results:** [FINDINGS.md](FINDINGS.md)
-
-**Tested on every pull request:** a 23-test browser suite runs against each PR's preview, and `main` only
-accepts a PR once it passes. On [PR #1](https://github.com/N-45div/alibi/pull/1) it caught a ledger bug before the fix
-(24/30) and went green after it (30/30). [How it works](#tests-that-run-on-every-pull-request)
+**Live demo:** [alibi-one.vercel.app](https://alibi-one.vercel.app) · **Results:** [FINDINGS.md](FINDINGS.md) ·
+**Tests:** every pull request is checked in a real browser before it merges ([how](#testing))
 
 https://github.com/user-attachments/assets/b9421466-4517-417c-9fa3-6a0a504b5f9a
 
@@ -120,12 +116,12 @@ npm run build
 
 The analysis data is derived from a gated dataset, so it is not committed here. The pipeline rebuilds it.
 
-## Tests that run on every pull request
+## Testing
 
-Nobody has to remember to test Alibi. Every pull request gets a Vercel preview, the
-[TestSprite](https://www.testsprite.com) GitHub App runs a 23-test browser suite against that preview, and the
-result comes back on the PR as a comment and a `TestSprite V3` status check. A ruleset on `main` requires that
-check to pass, so a pull request with a failing test can't merge.
+Every pull request is tested in a real browser before it can merge. Vercel builds a preview of the PR, the
+[TestSprite](https://www.testsprite.com) GitHub App runs the 23-test suite against that preview, and the result
+comes back on the PR as a comment and a `TestSprite V3` status check. A ruleset on `main` requires that check to
+pass, so a pull request with a failing test can't merge.
 
 ```mermaid
 flowchart LR
@@ -137,19 +133,9 @@ flowchart LR
 ```
 
 Preview builds copy the published data in at build time ([site/scripts/fetch-data.ts](site/scripts/fetch-data.ts)),
-so every PR is tested against the full dataset while the data itself stays out of the repo.
+so each PR is tested against the full dataset while the data itself stays out of the repo.
 
-### The loop on PR #1
-
-| Run | What was pushed | Result |
-|---|---|---|
-| 1 | the tests, without the fix | 24/30. Four ledger tests caught the bug: filters and page lost on reload and on Back from a claim, a stale link showing an empty ledger, the Ledger link not clearing filters. Two generated tests asked for pages Alibi doesn't have. |
-| 2 | the fix, and those two tests rewritten | 29/30. A third generated test asked for a Delvetown framing the Method page never had. |
-| 3 | that test rewritten | 30/30, merged. |
-
-### What the suite checks
-
-Every test asserts exact values from the dataset, not just that a page appeared:
+Each test asserts exact values from the dataset, not just that a page appeared:
 
 | Area | Tests |
 |---|---|
@@ -161,10 +147,9 @@ Every test asserts exact values from the dataset, not just that a page appeared:
 | Delvetown | the totals (1,051 citations, 9 contradicted) and each contradicted citation with its signed record; filters by resident and verdict; search by word and by record key. The live re-check is left out: it reads an outside server |
 | Method | the verdict table (3,915 / 544 / 1,750 / 51, summing to 6,260) and the agreement checks; the rule, the five steps and the limits |
 
-TestSprite's agents drafted the first suite after exploring the live site. Every generated test was then rewritten
-to assert exact values, and duplicates were merged. The whole suite, every step of every test, is in
-[testsprite/suite.jsonl](testsprite/suite.jsonl): put your own TestSprite project id in each line and run
-`testsprite test create-batch --plans testsprite/suite.jsonl` to run it on your copy.
+The suite, every step of every test, is in [testsprite/suite.jsonl](testsprite/suite.jsonl). To run it against your
+own deployment, put your TestSprite project id in each line and run
+`testsprite test create-batch --plans testsprite/suite.jsonl`.
 
 ## Limits
 
