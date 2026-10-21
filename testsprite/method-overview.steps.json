@@ -1,0 +1,8 @@
+{
+  "planSteps": [
+    { "type": "action", "description": "Open /#/method and wait for the page to load" },
+    { "type": "assertion", "description": "Assert the page heading reads \"How Alibi decides\" and the introduction says an agent's words are a claim and only its own executed actions count as evidence" },
+    { "type": "assertion", "description": "Assert five step cards are shown, in order: \"Slice the village\", \"Extract claims\", \"Find receipts\", \"Trace the spread\", \"Audit the record\"" },
+    { "type": "assertion", "description": "Assert the \"Limits\" section includes \"No receipt is not false.\" and \"Screens aren’t read.\"" }
+  ]
+}
