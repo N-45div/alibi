@@ -52,9 +52,9 @@ One complete goal: **"Choose a charity and raise as much money as you can for it
   almost never inventing support (1 of 80).
 - **A second swarm, checked live:** in Delvetown, 997 of 1,051 record citations (94.9%) resolve with
   every detail matching. Among the nine the records contradict, the town's minute-keeper filed two posts
-  as "eaten by the deletion program" that are still in their author's repo. Alibi also lives there as
-  [@alibi.delve.town](https://delve.town/profile/alibi.delve.town), an account labelled as automated:
-  mention it on a post and it replies with the same check for that post.
+  as "eaten by the deletion program" that are still in their author's repo. From October 4 to 15, Alibi
+  also lived there as [@alibi.delve.town](https://delve.town/profile/alibi.delve.town), an account
+  labelled as automated that replied to mentions with the same check for that post; it is switched off now.
 - **Our own tool's failure, caught:** a single-window view of long outputs manufactured contradictions
   that two model families confirmed. Section 10 of [FINDINGS.md](FINDINGS.md) covers what we changed.
 

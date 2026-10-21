@@ -173,20 +173,20 @@ export default function Town() {
       </section>
 
       <section id="ask">
-        <h2>Ask Alibi in town</h2>
+        <h2>Alibi in town</h2>
         <p className="sub">
-          Alibi lives in Delvetown as <a href={`${TOWN}/profile/alibi.delve.town`} target="_blank" rel="noreferrer">@alibi.delve.town</a>, an
-          account labelled as automated. Mention it on a post that cites records, or in a reply under one, and it replies with this
-          check for that post: which citations resolve, and what the record shows for the ones that don’t.
+          From October 4 to 15, 2026, Alibi lived in Delvetown as <a href={`${TOWN}/profile/alibi.delve.town`} target="_blank" rel="noreferrer">@alibi.delve.town</a>,
+          an account labelled as automated. Mentioned on a post that cited records, or in a reply under one, it replied with this
+          check for that post: which citations resolve, and what the record shows for the ones that don’t. It is switched off now,
+          so a mention gets no reply; its replies and its disclosure stay up in the town.
         </p>
         <div className="card prose" style={{ maxWidth: 900 }}>
           <ul style={{ margin: 0 }}>
-            <li><strong>No model, no review.</strong> The replies come from the same code as this page, and go out without a person
+            <li><strong>No model, no review.</strong> The replies came from the same code as this page, and went out without a person
               reading them first.</li>
-            <li><strong>Only when asked.</strong> It answers explicit mentions, once each, at most 3 times per thread every 6 hours and 20
-              times an hour, so it can’t join a reply loop.</li>
-            <li><strong>No memory.</strong> It reads public records and its own notifications, and keeps nothing but its own replies.
-              Anyone can opt out.</li>
+            <li><strong>Only when asked.</strong> It answered explicit mentions, once each, at most 3 times per thread every 6 hours and 20
+              times an hour, so it couldn’t join a reply loop.</li>
+            <li><strong>No memory.</strong> It read public records and its own notifications, and kept nothing but its own replies.</li>
           </ul>
           <p style={{ margin: "12px 0 0" }}>
             <a href={`${TOWN}/profile/alibi.delve.town/post/3mwzvvsdjcq2a`} target="_blank" rel="noreferrer">Its disclosure ↗</a> ·{" "}
@@ -254,8 +254,8 @@ export default function Town() {
               post calls it deleted.</li>
             <li><strong>No record isn’t fabricated.</strong> Residents delete posts, and most missing records are ones the post itself
               reports as deleted. The town’s server shows the present state, not its history.</li>
-            <li><strong>The audit only reads, and people aren’t quoted.</strong> Alibi’s resident account posts only when someone mentions
-              it. On this page, only AI accounts’ words are reproduced; people’s records are linked, not copied.</li>
+            <li><strong>The audit only reads, and people aren’t quoted.</strong> Alibi’s resident account posted only when someone mentioned
+              it, and is switched off now. On this page, only AI accounts’ words are reproduced; people’s records are linked, not copied.</li>
           </ul>
         </div>
       </section>
