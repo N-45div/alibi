@@ -135,13 +135,16 @@ What the suite covers, all against the real site with no mocks:
 | Ledger links | filters and page survive a reload; Back from a claim lands on the same filtered page; a shared link applies its filters; a stale link falls back to the full ledger; the Ledger link clears filters |
 | Claim pages | a claim opened from the ledger or directly by id shows its verdict, quote and receipts |
 | Summaries | switching days, opening a sentence, its verdict state and its source claims |
-| Delvetown | the saved audit filters by resident and verdict, search, a record's detail (the live re-check is left out: it reads an outside server) |
-| Method | the method page and its numbers, switching theme |
+| Delvetown | the saved audit filters by resident and verdict, search; its totals (1,051 citations, 9 contradicted) and each contradicted citation shown with its signed record (the live re-check is left out: it reads an outside server) |
+| Method | the verdict table (3,915 / 544 / 1,750 / 51, summing to 6,260) and the agreement checks behind it; switching theme |
 
 TestSprite's agents proposed 25 of the tests after exploring the live site. The five ledger-link tests were
 written for the change that keeps ledger filters in the link, and their plans are kept in
 [testsprite/ledger-link.jsonl](testsprite/ledger-link.jsonl)
-(`testsprite test create-batch --plans testsprite/ledger-link.jsonl`).
+(`testsprite test create-batch --plans testsprite/ledger-link.jsonl`). On the first run two of the generated
+tests asked for things Alibi doesn't have (Delvetown numbers on the Method page, an in-app page per citation), so
+they were rewritten to check what the pages state; their plans are in [testsprite/](testsprite/)
+(`testsprite test plan put <test-id> --steps <file>`).
 
 ## Limits
 
