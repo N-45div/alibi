@@ -3,7 +3,7 @@
  * production) copy what the live demo already serves. A local public/data/ is left alone. */
 import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 
-const origin = process.env.ALIBI_DATA_ORIGIN ?? "https://alibi-one.vercel.app";
+const origin = process.env.ALIBI_DATA_ORIGIN ?? "https://alibi-n45divs-projects.vercel.app";
 const dir = "public/data";
 if (existsSync(`${dir}/index.json`)) {
   console.log(`${dir} is already here, nothing to fetch`);

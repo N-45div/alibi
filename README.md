@@ -15,7 +15,11 @@ Built for the AI Swarm Dynamics Hackathon (AI Village × Grove Research) on the
 [AI Village dataset](https://huggingface.co/datasets/aidigestorg/ai-village) and
 [Delvetown](https://delve.town)'s public records.
 
-**Live demo:** [alibi-one.vercel.app](https://alibi-one.vercel.app) · **Results:** [FINDINGS.md](FINDINGS.md)
+**Live demo:** [alibi-n45divs-projects.vercel.app](https://alibi-n45divs-projects.vercel.app) · **Results:** [FINDINGS.md](FINDINGS.md)
+
+**Tested on every pull request:** a 23-test browser suite runs against each PR's preview, and its status check
+turns red when any test fails. On [PR #1](https://github.com/N-45div/alibi/pull/1) it caught a ledger bug before the fix
+(24/30) and went green after it (30/30). [How it works](#tests-that-run-on-every-pull-request)
 
 https://github.com/user-attachments/assets/b9421466-4517-417c-9fa3-6a0a504b5f9a
 
@@ -52,9 +56,9 @@ One complete goal: **"Choose a charity and raise as much money as you can for it
   almost never inventing support (1 of 80).
 - **A second swarm, checked live:** in Delvetown, 997 of 1,051 record citations (94.9%) resolve with
   every detail matching. Among the nine the records contradict, the town's minute-keeper filed two posts
-  as "eaten by the deletion program" that are still in their author's repo. Alibi also lives there as
-  [@alibi.delve.town](https://delve.town/profile/alibi.delve.town), an account labelled as automated:
-  mention it on a post and it replies with the same check for that post.
+  as "eaten by the deletion program" that are still in their author's repo. From October 4 to 15, Alibi
+  also lived there as [@alibi.delve.town](https://delve.town/profile/alibi.delve.town), an account
+  labelled as automated that replied to mentions with the same check for that post; it is switched off now.
 - **Our own tool's failure, caught:** a single-window view of long outputs manufactured contradictions
   that two model families confirmed. Section 10 of [FINDINGS.md](FINDINGS.md) covers what we changed.
 
@@ -118,33 +122,48 @@ The analysis data is derived from a gated dataset, so it is not committed here. 
 
 ## Tests that run on every pull request
 
-Every pull request is tested before it can merge. Vercel builds a preview of the PR, the
-[TestSprite](https://www.testsprite.com) GitHub App runs the suite against that preview in a real browser, and
-the verdict lands on the PR as a comment and a required status check. Nobody has to remember to run it.
+Nobody has to remember to test Alibi. Every pull request gets a Vercel preview, the
+[TestSprite](https://www.testsprite.com) GitHub App runs a 23-test browser suite against that preview, and the
+result comes back on the PR as a comment and a `TestSprite V3` status check that turns red when any test fails.
+
+```mermaid
+flowchart LR
+  push["push to a pull request"] --> build["Vercel builds a preview<br/>(data copied in at build time)"]
+  build -- "commit status: success" --> run["TestSprite runs 23 browser<br/>tests against the preview"]
+  run --> comment["comment on the PR,<br/>each failure with a screenshot"]
+  run --> check["TestSprite V3 status check"]
+  check -- "green" --> merge{"merge"}
+```
 
 Preview builds copy the published data in at build time ([site/scripts/fetch-data.ts](site/scripts/fetch-data.ts)),
-so every PR is tested against the full dataset while the data itself stays out of the repo. The live app is
-[alibi-one.vercel.app](https://alibi-one.vercel.app).
+so every PR is tested against the full dataset while the data itself stays out of the repo.
 
-What the suite covers, all against the real site with no mocks:
+### The loop on PR #1
 
-| Area | What the tests check |
+| Run | What was pushed | Result |
+|---|---|---|
+| 1 | the tests, without the fix | 24/30. Four ledger tests caught the bug: filters and page lost on reload and on Back from a claim, a stale link showing an empty ledger, the Ledger link not clearing filters. Two generated tests asked for pages Alibi doesn't have. |
+| 2 | the fix, and those two tests rewritten | 29/30. A third generated test asked for a Delvetown framing the Method page never had. |
+| 3 | that test rewritten | 30/30, merged. |
+
+### What the suite checks
+
+Every test asserts exact values from the dataset, not just that a page appeared:
+
+| Area | Tests |
 |---|---|
-| Overview | the headline numbers render; links into the ledger, summaries, Delvetown and method; the theme toggle |
-| Ledger | each filter (day, agent, kind, verdict) narrows the list; search; paging; opening a claim |
-| Ledger links | filters and page survive a reload; Back from a claim lands on the same filtered page; a shared link applies its filters; a stale link falls back to the full ledger; the Ledger link clears filters |
-| Claim pages | a claim opened from the ledger or directly by id shows its verdict, quote and receipts |
-| Summaries | switching days, opening a sentence, its verdict state and its source claims |
-| Delvetown | the saved audit filters by resident and verdict, search; its totals (1,051 citations, 9 contradicted) and each contradicted citation shown with its signed record (the live re-check is left out: it reads an outside server) |
-| Method | the verdict table (3,915 / 544 / 1,750 / 51, summing to 6,260) and the agreement checks behind it; switching theme |
+| Overview | the headline figure (29% of 6,260 claims with no receipt) and all four tiles; the top bar reaches every page, each with its own heading and tab title; the theme choice survives a reload |
+| Ledger | search ("$115" finds 155 claims); all four filters together (Apr 3, GPT-5.4, verification, backed: 41 claims); paging stops at both ends (143 pages, 3 for contradicted) |
+| Ledger links | filters and page survive a reload; Back from a claim lands on the same page; a shared link applies its filters; a stale link falls back to the full ledger; the Ledger link clears filters; Copy link to this view |
+| Claim pages | a searched claim's quote, receipts, memories and summary; a claim link to an unbacked claim four agents repeated on trust; an unknown claim id |
+| Summaries | picking a day; a day's sentence counts and legend; a sentence traced to the claim it rests on, and into that claim |
+| Delvetown | the totals (1,051 citations, 9 contradicted) and each contradicted citation with its signed record; filters by resident and verdict; search by word and by record key. The live re-check is left out: it reads an outside server |
+| Method | the verdict table (3,915 / 544 / 1,750 / 51, summing to 6,260) and the agreement checks; the rule, the five steps and the limits |
 
-TestSprite's agents proposed 25 of the tests after exploring the live site. The five ledger-link tests were
-written for the change that keeps ledger filters in the link, and their plans are kept in
-[testsprite/ledger-link.jsonl](testsprite/ledger-link.jsonl)
-(`testsprite test create-batch --plans testsprite/ledger-link.jsonl`). Over the first two runs three of the generated
-tests asked for things Alibi doesn't have (Delvetown framing and numbers on the Method page, an in-app page per
-citation), so they were rewritten to check what the pages state; their plans are in [testsprite/](testsprite/)
-(`testsprite test plan put <test-id> --steps <file>`).
+TestSprite's agents drafted the first suite after exploring the live site. Every generated test was then rewritten
+to assert exact values, and duplicates were merged. The whole suite, every step of every test, is in
+[testsprite/suite.jsonl](testsprite/suite.jsonl): put your own TestSprite project id in each line and run
+`testsprite test create-batch --plans testsprite/suite.jsonl` to run it on your copy.
 
 ## Limits
 

@@ -1,9 +1,0 @@
-{
-  "planSteps": [
-    { "type": "action", "description": "Open /#/town and wait for the saved audit to load. Do not press \"Check the town now\" and do not follow any ↗ link: they leave the site" },
-    { "type": "assertion", "description": "Assert the tile \"Record citations checked\" shows 1,051 and the tile \"Contradicted by the record\" shows 9" },
-    { "type": "action", "description": "Scroll to the section headed \"What the record contradicts\"" },
-    { "type": "assertion", "description": "Assert the section lists 9 flagged citations" },
-    { "type": "assertion", "description": "Assert the first flagged citation shows the resident's name, a \"Post ↗\" link, a sentence saying which detail differs from the record, a box with the record's own text, and a link \"The signed record ↗\"" }
-  ]
-}
