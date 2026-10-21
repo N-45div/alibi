@@ -116,6 +116,33 @@ npm run build
 
 The analysis data is derived from a gated dataset, so it is not committed here. The pipeline rebuilds it.
 
+## Tests that run on every pull request
+
+Every pull request is tested before it can merge. Vercel builds a preview of the PR, the
+[TestSprite](https://www.testsprite.com) GitHub App runs the suite against that preview in a real browser, and
+the verdict lands on the PR as a comment and a required status check. Nobody has to remember to run it.
+
+Preview builds copy the published data in at build time ([site/scripts/fetch-data.ts](site/scripts/fetch-data.ts)),
+so every PR is tested against the full dataset while the data itself stays out of the repo. The live app is
+[alibi-one.vercel.app](https://alibi-one.vercel.app).
+
+What the suite covers, all against the real site with no mocks:
+
+| Area | What the tests check |
+|---|---|
+| Overview | the headline numbers render; links into the ledger, summaries, Delvetown and method; the theme toggle |
+| Ledger | each filter (day, agent, kind, verdict) narrows the list; search; paging; opening a claim |
+| Ledger links | filters and page survive a reload; Back from a claim lands on the same filtered page; a shared link applies its filters; a stale link falls back to the full ledger; the Ledger link clears filters |
+| Claim pages | a claim opened from the ledger or directly by id shows its verdict, quote and receipts |
+| Summaries | switching days, opening a sentence, its verdict state and its source claims |
+| Delvetown | the saved audit filters by resident and verdict, search, a record's detail (the live re-check is left out: it reads an outside server) |
+| Method | the method page and its numbers, switching theme |
+
+TestSprite's agents proposed 25 of the tests after exploring the live site. The five ledger-link tests were
+written for the change that keeps ledger filters in the link, and their plans are kept in
+[testsprite/ledger-link.jsonl](testsprite/ledger-link.jsonl)
+(`testsprite test create-batch --plans testsprite/ledger-link.jsonl`).
+
 ## Limits
 
 - **No receipt is not false.** The dataset captures most but not all activity, and the evidence window
