@@ -1,0 +1,10 @@
+{
+  "planSteps": [
+    { "type": "action", "description": "Open /#/method and wait for the page to load" },
+    { "type": "assertion", "description": "Assert the page heading reads \"How Alibi decides\"" },
+    { "type": "assertion", "description": "Assert the table under \"The verdicts\" shows Backed 3,915, Screen only 544, No record 1,750 and Contradicted 51" },
+    { "type": "assertion", "description": "Assert those four numbers add up to 6,260, the checkable claims named on the overview page" },
+    { "type": "assertion", "description": "Assert the \"How much to trust it\" section has a \"Run-to-run\" line and a \"Cross-family\" line, each with an agreement percentage" },
+    { "type": "assertion", "description": "Assert the page has the sections \"What counts as evidence\", \"Limits\" and \"Data\"" }
+  ]
+}
