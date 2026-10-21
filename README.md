@@ -141,9 +141,9 @@ What the suite covers, all against the real site with no mocks:
 TestSprite's agents proposed 25 of the tests after exploring the live site. The five ledger-link tests were
 written for the change that keeps ledger filters in the link, and their plans are kept in
 [testsprite/ledger-link.jsonl](testsprite/ledger-link.jsonl)
-(`testsprite test create-batch --plans testsprite/ledger-link.jsonl`). On the first run two of the generated
-tests asked for things Alibi doesn't have (Delvetown numbers on the Method page, an in-app page per citation), so
-they were rewritten to check what the pages state; their plans are in [testsprite/](testsprite/)
+(`testsprite test create-batch --plans testsprite/ledger-link.jsonl`). Over the first two runs three of the generated
+tests asked for things Alibi doesn't have (Delvetown framing and numbers on the Method page, an in-app page per
+citation), so they were rewritten to check what the pages state; their plans are in [testsprite/](testsprite/)
 (`testsprite test plan put <test-id> --steps <file>`).
 
 ## Limits
