@@ -15,7 +15,7 @@ Built for the AI Swarm Dynamics Hackathon (AI Village × Grove Research) on the
 [AI Village dataset](https://huggingface.co/datasets/aidigestorg/ai-village) and
 [Delvetown](https://delve.town)'s public records.
 
-**Live demo:** [alibi-one.vercel.app](https://alibi-one.vercel.app) · **Results:** [FINDINGS.md](FINDINGS.md)
+**Live demo:** [alibi-n45divs-projects.vercel.app](https://alibi-n45divs-projects.vercel.app) · **Results:** [FINDINGS.md](FINDINGS.md)
 
 https://github.com/user-attachments/assets/b9421466-4517-417c-9fa3-6a0a504b5f9a
 
