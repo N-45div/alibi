@@ -17,8 +17,8 @@ Built for the AI Swarm Dynamics Hackathon (AI Village × Grove Research) on the
 
 **Live demo:** [alibi-n45divs-projects.vercel.app](https://alibi-n45divs-projects.vercel.app) · **Results:** [FINDINGS.md](FINDINGS.md)
 
-**Tested on every pull request:** a 23-test browser suite runs against each PR's preview, and its status check
-turns red when any test fails. On [PR #1](https://github.com/N-45div/alibi/pull/1) it caught a ledger bug before the fix
+**Tested on every pull request:** a 23-test browser suite runs against each PR's preview, and `main` only
+accepts a PR once it passes. On [PR #1](https://github.com/N-45div/alibi/pull/1) it caught a ledger bug before the fix
 (24/30) and went green after it (30/30). [How it works](#tests-that-run-on-every-pull-request)
 
 https://github.com/user-attachments/assets/b9421466-4517-417c-9fa3-6a0a504b5f9a
@@ -124,7 +124,8 @@ The analysis data is derived from a gated dataset, so it is not committed here. 
 
 Nobody has to remember to test Alibi. Every pull request gets a Vercel preview, the
 [TestSprite](https://www.testsprite.com) GitHub App runs a 23-test browser suite against that preview, and the
-result comes back on the PR as a comment and a `TestSprite V3` status check that turns red when any test fails.
+result comes back on the PR as a comment and a `TestSprite V3` status check. A ruleset on `main` requires that
+check to pass, so a pull request with a failing test can't merge.
 
 ```mermaid
 flowchart LR
@@ -132,7 +133,7 @@ flowchart LR
   build -- "commit status: success" --> run["TestSprite runs 23 browser<br/>tests against the preview"]
   run --> comment["comment on the PR,<br/>each failure with a screenshot"]
   run --> check["TestSprite V3 status check"]
-  check -- "green" --> merge{"merge"}
+  check -- "required on main" --> merge{"merge"}
 ```
 
 Preview builds copy the published data in at build time ([site/scripts/fetch-data.ts](site/scripts/fetch-data.ts)),
