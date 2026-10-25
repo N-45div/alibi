@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { ClaimRow, Loading } from "../components";
 import { ledgerLink, readLedgerLink } from "../ledger-link";
 import { KINDS, VERDICTS, VERDICT_LABEL, dayLabel, fmt, useData, type IndexRow } from "../lib";
@@ -28,6 +28,7 @@ export default function Claims() {
   const [q, setQ] = useState(start.q);
   const [page, setPage] = useState(start.page);
   const [copied, setCopied] = useState<"" | "ok" | "fail">("");
+  const listTop = useRef<HTMLDivElement>(null);
 
   // The "Ledger" link (#/claims) or Back/Forward between ledger views re-reads the link
   useEffect(() => {
@@ -78,6 +79,8 @@ export default function Claims() {
 
   if (!data) return <div className="wrap"><Loading error={error} /></div>;
   const set = (f: (v: string) => void) => (e: { target: { value: string } }) => { f(e.target.value); setPage(0); };
+  // A new page starts at its first row, not wherever the last page was scrolled to
+  const turn = (to: number) => { setPage(to); listTop.current?.scrollIntoView({ block: "start" }); };
 
   return (
     <div className="wrap">
@@ -105,7 +108,7 @@ export default function Claims() {
         </select>
         <input type="search" placeholder="Search claims, e.g. “commit”, “$115”, “DMs”" value={q} onChange={set(setQ)} aria-label="Search claims" />
       </div>
-      <div className="row muted small" style={{ marginBottom: 6 }}>
+      <div className="row muted small" style={{ marginBottom: 6, scrollMarginTop: 72 }} ref={listTop}>
         <span>{fmt(rows.length)} matching claims</span>
         <span className="spacer" />
         <span role="status">{copied === "ok" ? "Link copied" : copied === "fail" ? "Couldn’t copy: the link is in the address bar" : ""}</span>
@@ -119,9 +122,9 @@ export default function Claims() {
       </div>
       {pages > 1 && (
         <div className="pager">
-          <button className="toggle" disabled={at === 0} onClick={() => setPage(at - 1)}>← Previous</button>
+          <button className="toggle" disabled={at === 0} onClick={() => turn(at - 1)}>← Previous</button>
           <span className="muted small">Page {at + 1} of {fmt(pages)}</span>
-          <button className="toggle" disabled={at >= pages - 1} onClick={() => setPage(at + 1)}>Next →</button>
+          <button className="toggle" disabled={at >= pages - 1} onClick={() => turn(at + 1)}>Next →</button>
         </div>
       )}
     </div>
