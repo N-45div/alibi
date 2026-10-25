@@ -1,0 +1,35 @@
+name: receipts
+
+# TestSprite's commit status is a claim about a run. This posts a "receipts" status that only goes green when the
+# counts in it show every test passed and the number of tests matches testsprite/suite.jsonl. The script comes from
+# main; only the suite file is read from the commit under test, so a pull request can't rewrite its own check.
+on: status
+
+permissions:
+  contents: read
+  statuses: write
+
+jobs:
+  receipts:
+    if: github.event.context == 'TestSprite V3'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Suite file from the commit under test
+        run: git show "$SHA:testsprite/suite.jsonl" > "$RUNNER_TEMP/suite.jsonl"
+        env:
+          SHA: ${{ github.event.sha }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - run: node site/scripts/receipts.ts
+        env:
+          STATE: ${{ github.event.state }}
+          DESCRIPTION: ${{ github.event.description }}
+          SHA: ${{ github.event.sha }}
+          REPO: ${{ github.repository }}
+          TARGET_URL: ${{ github.event.target_url }}
+          SUITE_FILE: ${{ runner.temp }}/suite.jsonl
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
