@@ -118,24 +118,40 @@ The analysis data is derived from a gated dataset, so it is not committed here. 
 
 ## Testing
 
-Every pull request is tested in a real browser before it can merge. Vercel builds a preview of the PR, the
-[TestSprite](https://www.testsprite.com) GitHub App runs the 23-test suite against that preview, and the result
-comes back on the PR as a comment and a `TestSprite V3` status check. A ruleset on `main` requires that check to
-pass, so a pull request with a failing test can't merge.
+Three checks run on every pull request, and a ruleset on `main` requires all three before a merge:
+
+- **`TestSprite V3`**: Vercel builds a preview of the PR, and the [TestSprite](https://www.testsprite.com) GitHub
+  App runs a 23-test browser suite against it. The result comes back on the PR as a comment, each failure with a
+  screenshot.
+- **`site checks`**: builds the site and runs 43 tests that need no browser: unit tests for the Delvetown checker
+  and the ledger's links, checks that the published data agrees with itself, and the receipts logic
+  ([.github/workflows/site.yml](.github/workflows/site.yml)).
+- **`receipts`**: Alibi's rule applied to its own merges. TestSprite's status is a claim, so this check reads the
+  counts in it and only goes green when every test passed and the number of tests matches
+  [testsprite/suite.jsonl](testsprite/suite.jsonl). A test skipped, blocked or deleted from the TestSprite project
+  can't pass quietly. It runs from `main` and reads only the suite file from the commit under test, so a pull
+  request can't rewrite its own check ([.github/workflows/receipts.yml](.github/workflows/receipts.yml)).
 
 ```mermaid
 flowchart LR
   push["push to a pull request"] --> build["Vercel builds a preview<br/>(data copied in at build time)"]
+  push --> site["site checks: build,<br/>43 unit and data tests"]
   build -- "commit status: success" --> run["TestSprite runs 23 browser<br/>tests against the preview"]
   run --> comment["comment on the PR,<br/>each failure with a screenshot"]
-  run --> check["TestSprite V3 status check"]
-  check -- "required on main" --> merge{"merge"}
+  run --> status["TestSprite V3 status"]
+  status --> receipts["receipts: every test passed,<br/>and as many as suite.jsonl"]
+  status -- required --> merge{"merge"}
+  site -- required --> merge
+  receipts -- required --> merge
 ```
 
 Preview builds copy the published data in at build time ([site/scripts/fetch-data.ts](site/scripts/fetch-data.ts)),
-so each PR is tested against the full dataset while the data itself stays out of the repo.
+so each PR is tested against the full dataset while the data itself stays out of the repo. The data checks hold
+the published files to each other: the ledger's 7,118 rows against the overview's totals and the per-day files,
+every summary sentence against the claims it rests on, every repeat linked to its original both ways, and every
+Delvetown verdict against its details.
 
-Each test asserts exact values from the dataset, not just that a page appeared:
+Each browser test asserts exact values from the dataset, not just that a page appeared:
 
 | Area | Tests |
 |---|---|
@@ -150,6 +166,9 @@ Each test asserts exact values from the dataset, not just that a page appeared:
 The suite, every step of every test, is in [testsprite/suite.jsonl](testsprite/suite.jsonl). To run it against your
 own deployment, put your TestSprite project id in each line and run
 `testsprite test create-batch --plans testsprite/suite.jsonl`.
+
+Every defect these checks have found, app and test alike, is in [docs/defects.md](docs/defects.md), with what found
+it and the commit that fixed it.
 
 ## Limits
 
