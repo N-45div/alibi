@@ -1,14 +1,9 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { ClaimRow, Loading } from "../components";
+import { ledgerLink, readLedgerLink } from "../ledger-link";
 import { KINDS, VERDICTS, VERDICT_LABEL, dayLabel, fmt, useData, type IndexRow } from "../lib";
 
 const PAGE = 50;
-const FILTERS = ["day", "agent", "kind", "verdict", "q"] as const;
-
-/** Filters and the page live in the link (#/claims?q=colony&verdict=no_record&page=2), so a shared link, a reload
- * or Back from a claim lands on the same view. */
-const param = (name: string) => new URLSearchParams(window.location.hash.split("?")[1] ?? "").get(name) ?? "";
-const pageParam = () => { const n = Math.floor(Number(param("page"))); return n >= 1 ? n - 1 : 0; };
 
 /** The clipboard API needs focus and permission; the hidden-textarea copy covers browsers that refuse it. */
 async function copyText(text: string): Promise<boolean> {
@@ -25,20 +20,22 @@ async function copyText(text: string): Promise<boolean> {
 
 export default function Claims() {
   const { data, error } = useData<IndexRow[]>("index.json");
-  const [day, setDay] = useState(() => param("day"));
-  const [agent, setAgent] = useState(() => param("agent"));
-  const [kind, setKind] = useState(() => param("kind"));
-  const [verdict, setVerdict] = useState(() => param("verdict"));
-  const [q, setQ] = useState(() => param("q"));
-  const [page, setPage] = useState(pageParam);
+  const [start] = useState(() => readLedgerLink(window.location.hash));
+  const [day, setDay] = useState(start.day);
+  const [agent, setAgent] = useState(start.agent);
+  const [kind, setKind] = useState(start.kind);
+  const [verdict, setVerdict] = useState(start.verdict);
+  const [q, setQ] = useState(start.q);
+  const [page, setPage] = useState(start.page);
   const [copied, setCopied] = useState<"" | "ok" | "fail">("");
+  const listTop = useRef<HTMLDivElement>(null);
 
   // The "Ledger" link (#/claims) or Back/Forward between ledger views re-reads the link
   useEffect(() => {
     const onHash = () => {
       if (!window.location.hash.startsWith("#/claims")) return;
-      setDay(param("day")); setAgent(param("agent")); setKind(param("kind")); setVerdict(param("verdict"));
-      setQ(param("q")); setPage(pageParam());
+      const v = readLedgerLink(window.location.hash);
+      setDay(v.day); setAgent(v.agent); setKind(v.kind); setVerdict(v.verdict); setQ(v.q); setPage(v.page);
     };
     window.addEventListener("hashchange", onHash);
     return () => window.removeEventListener("hashchange", onHash);
@@ -73,12 +70,7 @@ export default function Claims() {
   // Waits for the data: until then every link would look like page 1.
   useEffect(() => {
     if (!data) return;
-    const values = { day, agent, kind, verdict, q };
-    const p = new URLSearchParams();
-    for (const k of FILTERS) if (values[k]) p.set(k, values[k]);
-    if (at > 0) p.set("page", String(at + 1));
-    const s = p.toString();
-    const hash = `#/claims${s ? `?${s}` : ""}`;
+    const hash = ledgerLink({ day, agent, kind, verdict, q, page: at });
     if (window.location.hash !== hash) history.replaceState(history.state, "", hash);
   }, [data, day, agent, kind, verdict, q, at]);
 
@@ -87,6 +79,8 @@ export default function Claims() {
 
   if (!data) return <div className="wrap"><Loading error={error} /></div>;
   const set = (f: (v: string) => void) => (e: { target: { value: string } }) => { f(e.target.value); setPage(0); };
+  // A new page starts at its first row, not wherever the last page was scrolled to
+  const turn = (to: number) => { setPage(to); listTop.current?.scrollIntoView({ block: "start" }); };
 
   return (
     <div className="wrap">
@@ -114,7 +108,7 @@ export default function Claims() {
         </select>
         <input type="search" placeholder="Search claims, e.g. “commit”, “$115”, “DMs”" value={q} onChange={set(setQ)} aria-label="Search claims" />
       </div>
-      <div className="row muted small" style={{ marginBottom: 6 }}>
+      <div className="row muted small" style={{ marginBottom: 6, scrollMarginTop: 72 }} ref={listTop}>
         <span>{fmt(rows.length)} matching claims</span>
         <span className="spacer" />
         <span role="status">{copied === "ok" ? "Link copied" : copied === "fail" ? "Couldn’t copy: the link is in the address bar" : ""}</span>
@@ -128,9 +122,9 @@ export default function Claims() {
       </div>
       {pages > 1 && (
         <div className="pager">
-          <button className="toggle" disabled={at === 0} onClick={() => setPage(at - 1)}>← Previous</button>
+          <button className="toggle" disabled={at === 0} onClick={() => turn(at - 1)}>← Previous</button>
           <span className="muted small">Page {at + 1} of {fmt(pages)}</span>
-          <button className="toggle" disabled={at >= pages - 1} onClick={() => setPage(at + 1)}>Next →</button>
+          <button className="toggle" disabled={at >= pages - 1} onClick={() => turn(at + 1)}>Next →</button>
         </div>
       )}
     </div>
