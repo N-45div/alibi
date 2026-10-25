@@ -1,0 +1,15 @@
+# Defects
+
+Every defect the checks have found, what found it, and the commit that fixed it. App defects and test defects are
+listed together: a test that asserts the wrong thing is as much a defect as a page that shows the wrong thing.
+
+| # | Defect | Kind | Found by | Fixed in |
+|---|---|---|---|---|
+| 1 | The ledger forgot its view. Reloading, or opening a claim and pressing Back, landed on page 1 of the unfiltered ledger; a link with a verdict or day the data doesn't have showed "0 matching claims" under selects that read "All"; the Ledger link in the top bar didn't clear the filters. | app | Four browser tests written for the ledger's links, red against the live site and on the first run of [#1](https://github.com/N-45div/alibi/pull/1) (24 of 30) | [`0eb62ea`](https://github.com/N-45div/alibi/commit/0eb62ea), green on #1's last run (30 of 30) |
+| 2 | The browser tab said "site-tmp", the scaffold's placeholder. | app | The reload test's title assertion, run against the live site | [`c165246`](https://github.com/N-45div/alibi/commit/c165246) |
+| 3 | Two generated tests asked for pages Alibi doesn't have: Delvetown numbers on the Method page, and an in-app page per Delvetown citation, which link to their signed records by design. | test | The first run on [#1](https://github.com/N-45div/alibi/pull/1); TestSprite's suggested fix was to build the pages | [`9a43608`](https://github.com/N-45div/alibi/commit/9a43608): rewritten to check what the pages state |
+| 4 | A third generated test asked for a Delvetown framing the Method page never had. It had passed once, so it flipped between runs. | test | The second run on [#1](https://github.com/N-45div/alibi/pull/1) (29 of 30) | [`d25a061`](https://github.com/N-45div/alibi/commit/d25a061) |
+| 5 | 22 of the 25 generated tests only checked that a page appeared: not one number or exact string among their assertions. | test | Counting the specific assertions in each test | [`3f13a45`](https://github.com/N-45div/alibi/commit/3f13a45): every test asserts exact values from the data; 8 duplicates merged |
+| 6 | The Delvetown page, the README and FINDINGS still told people to mention @alibi.delve.town for a reply, after the account was switched off on October 15. | content | Reading the rendered pages while writing exact assertions for them | [`0df62d6`](https://github.com/N-45div/alibi/commit/0df62d6) |
+| 7 | Builds copied their data from a deployment owned by a different Vercel team, so deleting that project would have broken every build. | build | Review while moving the site to its current Vercel project | [`eb6046a`](https://github.com/N-45div/alibi/commit/eb6046a) |
+| 8 | The Delvetown checker's record-key filter never filtered. It asked for a digit 2–7 in a match that always starts with 3. Two published citations (3mwycinpusqpl, 3mwyfbfgjdmhq) are real posts with no digit after the 3, so the filter was removed rather than fixed; published results don't change. | app | A unit test of `hasCitations` | [`e907412`](https://github.com/N-45div/alibi/commit/e907412) |
