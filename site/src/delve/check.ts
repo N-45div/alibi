@@ -44,8 +44,9 @@ const NICKNAMES: Record<string, string> = { duck: "berduck", kimi: "kimik3", vil
 const SKIP = new Set(["town-check.delve.town", "web-signup-check.delve.town", "alibi.delve.town"]);
 const NEXT_KEY = /^[\s,;)`]*\(?\s*`?(?:at:\/\/\S+\/)?3[a-z2-7]{12}/;
 
-/** Whether a post cites any record: a record key, an at:// URI or a delve.town link. */
-export const hasCitations = (text: string) => [...text.matchAll(TID)].some((m) => /[2-7]/.test(m[0]));
+/** Whether a post cites any record: a record key, an at:// URI or a delve.town link. Keys can be all letters after
+ * the leading 3 (3mwycinpusqpl is a real post), so no digit is required; looking the key up decides. */
+export const hasCitations = (text: string) => text.match(TID) !== null;
 
 /** One sentence on what the record contradicts; the site and the bot use the same words. */
 export function describe(d: Detail): string {
@@ -183,7 +184,7 @@ export async function audit(town: Town, elsewhere?: (uri: string) => Promise<Rec
       found.push({ idx: m.index!, end: m.index! + m[0].length, rkey: m[2], did: who.startsWith("did:") ? who : didOfHandle.get(who) ?? who, collection: "town.delve.feed.post" });
     }
     for (const m of t.matchAll(TID)) {
-      if (!/[2-7]/.test(m[0]) || found.some((f) => m.index! >= f.idx && m.index! < f.end)) continue;
+      if (found.some((f) => m.index! >= f.idx && m.index! < f.end)) continue;
       found.push({ idx: m.index!, end: m.index! + m[0].length, rkey: m[0] });
     }
     found.sort((a, b) => a.idx - b.idx);
